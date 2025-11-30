@@ -11,32 +11,44 @@ export default function Topbar() {
       align="center"
       justify="space-between"
       px={6}
-      borderBottom="1px solid #1B1D23"
-      bg="#050509"
+      borderBottom="1px solid #d5d8e4"
+      bg="#f7f8fc" // cool white-blue
       position="sticky"
       top={0}
       zIndex={10}
     >
-      <Heading size="md">AI Driven Task Manager</Heading>
+      <Heading size="md" color="#1e2235">
+        AI Driven Task Manager
+      </Heading>
 
-      <HStack spacing={3}>
+      <HStack spacing={4}>
         <IconButton
           aria-label="Search tasks"
           icon={<FiSearch />}
           variant="ghost"
           size="sm"
+          color="gray.500"
+          _hover={{ bg: "#e2e6ff", color: "#1e2235" }}
         />
+
         <IconButton
           aria-label="Filter tasks"
           icon={<FiFilter />}
           variant="ghost"
           size="sm"
+          color="gray.500"
+          _hover={{ bg: "#e2e6ff", color: "#1e2235" }}
         />
 
-        {/* Fake avatar + naam */}
         <HStack spacing={2}>
-          <Box w="32px" h="32px" borderRadius="full" bg="gray.600" />
-          <Text fontSize="sm" color="gray.200">
+          <Box
+            w="28px"
+            h="28px"
+            borderRadius="full"
+            bg="#b5baff33"
+            border="1px solid #b5baff"
+          />
+          <Text fontSize="sm" color="#4a4e62">
             dev.robb
           </Text>
         </HStack>
