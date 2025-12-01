@@ -17,7 +17,12 @@ const statusStyles = {
   Done: { bg: "#e3f5e7", color: "#2a7a3a" },
 };
 
-export default function TaskTable({ tasks, onToggleStatus, onDeleteTask }) {
+export default function TaskTable({
+  tasks,
+  onToggleStatus,
+  onDeleteTask,
+  highlightedTaskId,
+}) {
   return (
     <Box
       bg="#ffffff"
@@ -79,6 +84,7 @@ export default function TaskTable({ tasks, onToggleStatus, onDeleteTask }) {
           const p = priorityStyles[task.priority] || priorityStyles.Medium;
           const s = statusStyles[task.status] || statusStyles["To Do"];
           const isDone = task.status === "Done";
+          const isHighlighted = highlightedTaskId === task.id;
 
           return (
             <Box
@@ -86,9 +92,16 @@ export default function TaskTable({ tasks, onToggleStatus, onDeleteTask }) {
               px={4}
               py={3}
               borderBottom="1px solid #e3e5f2"
-              bg={index % 2 === 0 ? "#ffffff" : "#f7f8ff"}
-              _hover={{ bg: "#eef0ff" }}
-              transition="background-color 0.15s ease-out"
+              bg={
+                isHighlighted
+                  ? "#e4f3ff"
+                  : index % 2 === 0
+                  ? "#ffffff"
+                  : "#f7f8ff"
+              }
+              _hover={{ bg: isHighlighted ? "#d9ecff" : "#eef0ff" }}
+              transition="background-color 0.15s ease-out, box-shadow 0.15s ease-out"
+              boxShadow={isHighlighted ? "0 0 0 1px #4b9cff" : "none"}
             >
               <HStack justify="space-between" align="flex-start" spacing={6}>
                 {/* Task + description + status dot */}

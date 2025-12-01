@@ -8,8 +8,10 @@ import AddTaskBar from "../components/AddTaskBar";
 import TaskFilters from "../components/TaskFilters";
 import TaskPriorityFilters from "../components/TaskPriorityFilters";
 import TaskSortBar from "../components/TaskSortBar";
+import NextTaskBanner from "../components/NextTaskBanner";
 import { initialTasks } from "../data/tasks";
 import { suggestPriorityForTitle } from "../lib/aiPriorityEngine";
+import { suggestNextTask } from "../lib/aiNextTaskSuggester";
 
 export default function HomePage() {
   // All tasks state
@@ -24,6 +26,9 @@ export default function HomePage() {
   // Sorting: "none" | "priority" | "dueDate" | "progress"
   const [sortBy, setSortBy] = useState("none");
   const [sortDirection, setSortDirection] = useState("asc"); // "asc" | "desc"
+
+  // AI: which task is currently suggested as "next"
+  const [suggestedTaskId, setSuggestedTaskId] = useState(null);
 
   // Add a new task to the list
   const handleAddTask = (title, priorityFromUI, descriptionFromUI) => {
@@ -51,6 +56,8 @@ export default function HomePage() {
     };
 
     setTasks((prev) => [newTask, ...prev]);
+    // Nieuwe taak → oude suggestie is niet per se meer geldig
+    setSuggestedTaskId(null);
   };
 
   // Toggle a task between "To Do" and "Done"
@@ -66,11 +73,15 @@ export default function HomePage() {
           : task
       )
     );
+    // Statusverandering → reset suggestie
+    setSuggestedTaskId(null);
   };
 
   // Remove a task from the list
   const handleDeleteTask = (taskId) => {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+    // Taak weg → reset suggestie
+    setSuggestedTaskId(null);
   };
 
   // Change sort option
@@ -136,6 +147,17 @@ export default function HomePage() {
     return result;
   });
 
+  // AI: suggest next task (kijkt naar ALLE tasks, niet alleen gefilterde)
+  const handleSuggestNextTask = () => {
+    const next = suggestNextTask(tasks);
+    setSuggestedTaskId(next ? next.id : null);
+  };
+
+  const suggestedTask =
+    suggestedTaskId != null
+      ? tasks.find((t) => t.id === suggestedTaskId) || null
+      : null;
+
   return (
     <Box minH="100vh" bg="#e9ecf5">
       <Topbar />
@@ -151,6 +173,12 @@ export default function HomePage() {
 
         {/* Add Task bar (with AI priority + AI description) */}
         <AddTaskBar onAddTask={handleAddTask} />
+
+        {/* AI Suggestion banner */}
+        <NextTaskBanner
+          suggestedTask={suggestedTask}
+          onSuggestNext={handleSuggestNextTask}
+        />
 
         {/* Status filters */}
         <TaskFilters currentFilter={filter} onChangeFilter={setFilter} />
@@ -174,6 +202,7 @@ export default function HomePage() {
           tasks={sortedTasks}
           onToggleStatus={handleToggleStatus}
           onDeleteTask={handleDeleteTask}
+          highlightedTaskId={suggestedTaskId}
         />
       </Box>
     </Box>
