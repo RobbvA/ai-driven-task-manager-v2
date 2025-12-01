@@ -4,14 +4,35 @@ import { useState } from "react";
 import { Box, Heading, Text, VStack } from "@chakra-ui/react";
 import Topbar from "../components/Topbar";
 import TaskTable from "../components/TaskTable";
+import AddTaskBar from "../components/AddTaskBar";
+import TaskFilters from "../components/TaskFilters";
 import { initialTasks } from "../data/tasks";
 
 export default function HomePage() {
-  // Local state for all tasks on the dashboard
+  // All tasks state
   const [tasks, setTasks] = useState(initialTasks);
 
+  // Current status filter: "All" | "To Do" | "In Progress" | "Done"
+  const [filter, setFilter] = useState("All");
+
+  // Add a new task to the list
+  const handleAddTask = (title, priority) => {
+    if (!title.trim()) return;
+
+    const newTask = {
+      id: `t-${Date.now()}`,
+      title: title.trim(),
+      description: "",
+      status: "To Do",
+      priority: priority || "Medium",
+      dueDate: "2025-12-10", // later we can make this dynamic
+      progress: 0,
+    };
+
+    setTasks((prev) => [newTask, ...prev]);
+  };
+
   // Toggle a task between "To Do" and "Done"
-  // (simple version for now – we can expand later)
   const handleToggleStatus = (taskId) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
@@ -31,6 +52,12 @@ export default function HomePage() {
     setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
   };
 
+  // Derive visible tasks based on the active filter
+  const visibleTasks = tasks.filter((task) => {
+    if (filter === "All") return true;
+    return task.status === filter;
+  });
+
   return (
     <Box minH="100vh" bg="#e9ecf5">
       <Topbar />
@@ -44,8 +71,15 @@ export default function HomePage() {
           </Text>
         </VStack>
 
+        {/* Add Task bar */}
+        <AddTaskBar onAddTask={handleAddTask} />
+
+        {/* Filters */}
+        <TaskFilters currentFilter={filter} onChangeFilter={setFilter} />
+
+        {/* Task table */}
         <TaskTable
-          tasks={tasks}
+          tasks={visibleTasks}
           onToggleStatus={handleToggleStatus}
           onDeleteTask={handleDeleteTask}
         />
