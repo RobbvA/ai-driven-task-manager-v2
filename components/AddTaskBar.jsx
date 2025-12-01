@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Box, HStack, Input, Button } from "@chakra-ui/react";
+import { Box, HStack, Input, Button, Text } from "@chakra-ui/react";
 
 export default function AddTaskBar({ onAddTask }) {
   const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState("Medium");
+  const [priority, setPriority] = useState("auto"); // "auto" | "Critical" | "High" | "Medium" | "Low"
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -17,7 +17,7 @@ export default function AddTaskBar({ onAddTask }) {
 
     // reset form
     setTitle("");
-    setPriority("Medium");
+    setPriority("auto");
   };
 
   return (
@@ -27,17 +27,17 @@ export default function AddTaskBar({ onAddTask }) {
           <Input
             size="sm"
             bg="#ffffff"
-            placeholder="Quick add a task..."
+            placeholder="Describe your task, let AI choose the priority..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
 
-          {/* Native select, gestyled via Box */}
+          {/* Native select, styled via Box */}
           <Box
             as="select"
             size="sm"
             bg="#ffffff"
-            w="140px"
+            w="160px"
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
             borderRadius="md"
@@ -45,6 +45,7 @@ export default function AddTaskBar({ onAddTask }) {
             px={2}
             py={1}
           >
+            <option value="auto">Auto (AI)</option>
             <option value="Critical">Critical</option>
             <option value="High">High</option>
             <option value="Medium">Medium</option>
@@ -55,6 +56,11 @@ export default function AddTaskBar({ onAddTask }) {
             Add
           </Button>
         </HStack>
+
+        <Text fontSize="xs" mt={1} color="#9aa0b8">
+          When set to Auto (AI), the app will suggest a priority based on the
+          task title.
+        </Text>
       </form>
     </Box>
   );

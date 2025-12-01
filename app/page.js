@@ -9,6 +9,7 @@ import TaskFilters from "../components/TaskFilters";
 import TaskPriorityFilters from "../components/TaskPriorityFilters";
 import TaskSortBar from "../components/TaskSortBar";
 import { initialTasks } from "../data/tasks";
+import { suggestPriorityForTitle } from "../lib/aiPriorityEngine";
 
 export default function HomePage() {
   // All tasks state
@@ -25,15 +26,26 @@ export default function HomePage() {
   const [sortDirection, setSortDirection] = useState("asc"); // "asc" | "desc"
 
   // Add a new task to the list
-  const handleAddTask = (title, priority) => {
+  const handleAddTask = (title, priorityFromUI) => {
     if (!title.trim()) return;
+
+    // Decide final priority:
+    // - if user chose "auto" → ask AI engine
+    // - otherwise use the selected priority
+    let finalPriority;
+
+    if (!priorityFromUI || priorityFromUI === "auto") {
+      finalPriority = suggestPriorityForTitle(title);
+    } else {
+      finalPriority = priorityFromUI;
+    }
 
     const newTask = {
       id: `t-${Date.now()}`,
       title: title.trim(),
       description: "",
       status: "To Do",
-      priority: priority || "Medium",
+      priority: finalPriority,
       dueDate: "2025-12-10", // later we can make this dynamic
       progress: 0,
     };
@@ -65,7 +77,6 @@ export default function HomePage() {
   const handleChangeSortBy = (value) => {
     setSortBy(value);
 
-    // als je van "none" naar iets anders gaat, standaard op "desc" voor priority/progress
     if (value === "priority" || value === "progress") {
       setSortDirection("desc");
     } else if (value === "dueDate") {
@@ -107,7 +118,6 @@ export default function HomePage() {
     }
 
     if (sortBy === "dueDate") {
-      // ISO dates vergelijken als string werkt, maar we kunnen ook new Date gebruiken
       const aDate = a.dueDate || "";
       const bDate = b.dueDate || "";
       if (aDate < bDate) result = -1;
@@ -119,7 +129,6 @@ export default function HomePage() {
       result = (a.progress || 0) - (b.progress || 0);
     }
 
-    // richting toepassen
     if (sortDirection === "desc") {
       result = result * -1;
     }
@@ -140,7 +149,7 @@ export default function HomePage() {
           </Text>
         </VStack>
 
-        {/* Add Task bar */}
+        {/* Add Task bar (with AI priority) */}
         <AddTaskBar onAddTask={handleAddTask} />
 
         {/* Status filters */}
