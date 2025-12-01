@@ -26,7 +26,7 @@ export default function HomePage() {
   const [sortDirection, setSortDirection] = useState("asc"); // "asc" | "desc"
 
   // Add a new task to the list
-  const handleAddTask = (title, priorityFromUI) => {
+  const handleAddTask = (title, priorityFromUI, descriptionFromUI) => {
     if (!title.trim()) return;
 
     // Decide final priority:
@@ -43,7 +43,7 @@ export default function HomePage() {
     const newTask = {
       id: `t-${Date.now()}`,
       title: title.trim(),
-      description: "",
+      description: descriptionFromUI?.trim() || "",
       status: "To Do",
       priority: finalPriority,
       dueDate: "2025-12-10", // later we can make this dynamic
@@ -149,7 +149,7 @@ export default function HomePage() {
           </Text>
         </VStack>
 
-        {/* Add Task bar (with AI priority) */}
+        {/* Add Task bar (with AI priority + AI description) */}
         <AddTaskBar onAddTask={handleAddTask} />
 
         {/* Status filters */}

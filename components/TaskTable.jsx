@@ -90,13 +90,14 @@ export default function TaskTable({ tasks, onToggleStatus, onDeleteTask }) {
               _hover={{ bg: "#eef0ff" }}
               transition="background-color 0.15s ease-out"
             >
-              <HStack justify="space-between" align="center" spacing={6}>
-                {/* Task + status dot */}
-                <HStack spacing={3} minW="260px">
+              <HStack justify="space-between" align="flex-start" spacing={6}>
+                {/* Task + description + status dot */}
+                <HStack spacing={3} minW="260px" align="flex-start">
                   <Box
                     w="10px"
                     h="10px"
                     borderRadius="full"
+                    mt={1}
                     bg={
                       isDone
                         ? "#3fbf60"
@@ -116,6 +117,18 @@ export default function TaskTable({ tasks, onToggleStatus, onDeleteTask }) {
                       {task.title}
                     </Text>
 
+                    {task.description && (
+                      <Text
+                        fontSize="xs"
+                        color="#6b708c"
+                        opacity={isDone ? 0.6 : 1}
+                        noOfLines={2}
+                        maxW="360px"
+                      >
+                        {task.description}
+                      </Text>
+                    )}
+
                     <HStack spacing={2}>
                       <Box
                         px={2}
@@ -132,7 +145,7 @@ export default function TaskTable({ tasks, onToggleStatus, onDeleteTask }) {
                 </HStack>
 
                 {/* Progress bar */}
-                <Box w="180px">
+                <Box w="180px" mt={1}>
                   <Box
                     w="100%"
                     h="6px"
@@ -175,7 +188,7 @@ export default function TaskTable({ tasks, onToggleStatus, onDeleteTask }) {
                 </Text>
 
                 {/* Actions */}
-                <HStack spacing={2}>
+                <HStack spacing={2} mt={1}>
                   <Button
                     size="xs"
                     variant="ghost"
