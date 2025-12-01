@@ -1,68 +1,23 @@
 "use client";
 
-import { Box, Text, HStack, VStack, Badge } from "@chakra-ui/react";
+import { Box, Text, HStack, VStack, Badge, Button } from "@chakra-ui/react";
 
-const tasks = [
-  {
-    id: 1,
-    name: "Design login page",
-    assigned: "R",
-    status: "In Progress",
-    progress: 45,
-    priority: "High",
-    due: "Tomorrow",
-  },
-  {
-    id: 2,
-    name: "Implement authentication",
-    assigned: "A",
-    status: "To Do",
-    progress: 0,
-    priority: "Medium",
-    due: "Dec 3",
-  },
-  {
-    id: 3,
-    name: "Fix API errors",
-    assigned: "D",
-    status: "Done",
-    progress: 100,
-    priority: "Critical",
-    due: "Today",
-  },
-];
-
+// Priority colors
 const priorityStyles = {
-  Critical: {
-    bg: "#ffe5ea",
-    color: "#b3394a",
-  },
-  High: {
-    bg: "#ffe9d6",
-    color: "#b97228",
-  },
-  Medium: {
-    bg: "#fff5cf",
-    color: "#887626",
-  },
+  Critical: { bg: "#ffe5ea", color: "#b3394a" },
+  High: { bg: "#ffe9d6", color: "#b97228" },
+  Medium: { bg: "#fff5cf", color: "#887626" },
+  Low: { bg: "#eef1f5", color: "#4a4e62" },
 };
 
+// Status colors
 const statusStyles = {
-  "To Do": {
-    bg: "#e8eafc",
-    color: "#4a4e62",
-  },
-  "In Progress": {
-    bg: "#dde3ff",
-    color: "#374074",
-  },
-  Done: {
-    bg: "#e3f5e7",
-    color: "#2a7a3a",
-  },
+  "To Do": { bg: "#e8eafc", color: "#4a4e62" },
+  "In Progress": { bg: "#dde3ff", color: "#374074" },
+  Done: { bg: "#e3f5e7", color: "#2a7a3a" },
 };
 
-export default function TaskTable() {
+export default function TaskTable({ tasks, onToggleStatus, onDeleteTask }) {
   return (
     <Box
       bg="#ffffff"
@@ -106,6 +61,15 @@ export default function TaskTable() {
           >
             Due
           </Text>
+
+          <Text
+            fontSize="xs"
+            textTransform="uppercase"
+            letterSpacing="0.12em"
+            color="#a1a4c0"
+          >
+            Actions
+          </Text>
         </HStack>
       </Box>
 
@@ -127,9 +91,8 @@ export default function TaskTable() {
               transition="background-color 0.15s ease-out"
             >
               <HStack justify="space-between" align="center" spacing={6}>
-                {/* Task + status + "avatar" */}
+                {/* Task + status dot */}
                 <HStack spacing={3} minW="260px">
-                  {/* status dot */}
                   <Box
                     w="10px"
                     h="10px"
@@ -150,26 +113,10 @@ export default function TaskTable() {
                       opacity={isDone ? 0.6 : 1}
                       color="#1e2235"
                     >
-                      {task.name}
+                      {task.title}
                     </Text>
 
                     <HStack spacing={2}>
-                      {/* Assigned "avatar" */}
-                      <Box
-                        w="22px"
-                        h="22px"
-                        borderRadius="full"
-                        bg="#e1e4ff"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        fontSize="xs"
-                        color="#374074"
-                      >
-                        {task.assigned}
-                      </Box>
-
-                      {/* Status pill */}
                       <Box
                         px={2}
                         py={0.5}
@@ -216,16 +163,37 @@ export default function TaskTable() {
                   {task.priority}
                 </Badge>
 
-                {/* Due */}
+                {/* Due date */}
                 <Text
                   opacity={0.85}
                   minW="80px"
-                  textAlign="right"
+                  textAlign="center"
                   fontSize="sm"
                   color="#4a4e62"
                 >
-                  {task.due}
+                  {task.dueDate}
                 </Text>
+
+                {/* Actions */}
+                <HStack spacing={2}>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    color="#4a4e62"
+                    onClick={() => onToggleStatus(task.id)}
+                  >
+                    Toggle
+                  </Button>
+
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    color="#b3394a"
+                    onClick={() => onDeleteTask(task.id)}
+                  >
+                    Delete
+                  </Button>
+                </HStack>
               </HStack>
             </Box>
           );
