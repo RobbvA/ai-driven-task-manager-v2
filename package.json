@@ -12,6 +12,7 @@
     "@chakra-ui/react": "^3.30.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@prisma/client": "6.19.0",
     "framer-motion": "^12.23.24",
     "next": "16.0.6",
     "react": "19.2.0",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "eslint": "^9",
-    "eslint-config-next": "16.0.6"
+    "eslint-config-next": "16.0.6",
+    "prisma": "6.19.0"
   }
 }

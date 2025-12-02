@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, Heading, Text, VStack } from "@chakra-ui/react";
 import Topbar from "../components/Topbar";
 import TaskTable from "../components/TaskTable";
@@ -9,13 +9,15 @@ import TaskFilters from "../components/TaskFilters";
 import TaskPriorityFilters from "../components/TaskPriorityFilters";
 import TaskSortBar from "../components/TaskSortBar";
 import NextTaskBanner from "../components/NextTaskBanner";
-import { initialTasks } from "../data/tasks";
 import { suggestPriorityForTitle } from "../lib/aiPriorityEngine";
 import { suggestNextTask } from "../lib/aiNextTaskSuggester";
 
 export default function HomePage() {
   // All tasks state
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState([]);
+
+  // Loading/error state (simpel gehouden)
+  const [isLoading, setIsLoading] = useState(true);
 
   // Status filter: "All" | "To Do" | "In Progress" | "Done"
   const [filter, setFilter] = useState("All");
@@ -30,8 +32,29 @@ export default function HomePage() {
   // AI: which task is currently suggested as "next"
   const [suggestedTaskId, setSuggestedTaskId] = useState(null);
 
-  // Add a new task to the list
-  const handleAddTask = (title, priorityFromUI, descriptionFromUI) => {
+  // Load tasks from API on mount
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const res = await fetch("/api/tasks");
+        if (!res.ok) {
+          console.error("Failed to load tasks:", await res.text());
+          return;
+        }
+        const data = await res.json();
+        setTasks(data);
+      } catch (error) {
+        console.error("Error loading tasks:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadTasks();
+  }, []);
+
+  // Add a new task to the list (and DB)
+  const handleAddTask = async (title, priorityFromUI, descriptionFromUI) => {
     if (!title.trim()) return;
 
     // Decide final priority:
@@ -45,43 +68,89 @@ export default function HomePage() {
       finalPriority = priorityFromUI;
     }
 
-    const newTask = {
-      id: `t-${Date.now()}`,
+    const payload = {
       title: title.trim(),
       description: descriptionFromUI?.trim() || "",
       status: "To Do",
       priority: finalPriority,
-      dueDate: "2025-12-10", // later we can make this dynamic
       progress: 0,
+      // Later kun je dueDate dynamisch maken, nu gewoon leeg of een vaste datum:
+      dueDate: null,
     };
 
-    setTasks((prev) => [newTask, ...prev]);
-    // Nieuwe taak → oude suggestie is niet per se meer geldig
-    setSuggestedTaskId(null);
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to create task:", await res.text());
+        return;
+      }
+
+      const created = await res.json();
+      setTasks((prev) => [created, ...prev]);
+      setSuggestedTaskId(null);
+    } catch (error) {
+      console.error("Error creating task:", error);
+    }
   };
 
-  // Toggle a task between "To Do" and "Done"
-  const handleToggleStatus = (taskId) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: task.status === "Done" ? "To Do" : "Done",
-              progress: task.status === "Done" ? 0 : 100,
-            }
-          : task
-      )
-    );
-    // Statusverandering → reset suggestie
-    setSuggestedTaskId(null);
+  // Toggle a task between "To Do" and "Done" (and update DB)
+  const handleToggleStatus = async (taskId) => {
+    const target = tasks.find((t) => t.id === taskId);
+    if (!target) return;
+
+    const newStatus = target.status === "Done" ? "To Do" : "Done";
+    const newProgress = newStatus === "Done" ? 100 : 0;
+
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // belangrijk: title meesturen zodat backend weet welke task
+          title: target.title,
+          status: newStatus,
+          progress: newProgress,
+        }),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to update task:", await res.text());
+        return;
+      }
+
+      const updated = await res.json();
+
+      setTasks((prevTasks) =>
+        prevTasks.map((task) => (task.id === taskId ? updated : task))
+      );
+      setSuggestedTaskId(null);
+    } catch (error) {
+      console.error("Error updating task status:", error);
+    }
   };
 
-  // Remove a task from the list
-  const handleDeleteTask = (taskId) => {
-    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-    // Taak weg → reset suggestie
-    setSuggestedTaskId(null);
+  // Remove a task from the list (and DB)
+  const handleDeleteTask = async (taskId) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        console.error("Failed to delete task:", await res.text());
+        return;
+      }
+
+      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+      setSuggestedTaskId(null);
+    } catch (error) {
+      console.error("Error deleting task:", error);
+    }
   };
 
   // Change sort option
@@ -198,12 +267,18 @@ export default function HomePage() {
         />
 
         {/* Task table */}
-        <TaskTable
-          tasks={sortedTasks}
-          onToggleStatus={handleToggleStatus}
-          onDeleteTask={handleDeleteTask}
-          highlightedTaskId={suggestedTaskId}
-        />
+        {isLoading ? (
+          <Text fontSize="sm" color="#6b708c" mt={4}>
+            Loading tasks…
+          </Text>
+        ) : (
+          <TaskTable
+            tasks={sortedTasks}
+            onToggleStatus={handleToggleStatus}
+            onDeleteTask={handleDeleteTask}
+            highlightedTaskId={suggestedTaskId}
+          />
+        )}
       </Box>
     </Box>
   );
