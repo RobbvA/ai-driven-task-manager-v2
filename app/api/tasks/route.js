@@ -2,16 +2,17 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../lib/prisma";
 
-// GET /api/tasks  → lijst met alle tasks (laatste eerst)
+// GET /api/tasks → lijst met alle tasks (laatste eerst)
 export async function GET() {
   try {
     const tasks = await prisma.task.findMany({
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(tasks);
+    return NextResponse.json(tasks, { status: 200 });
   } catch (error) {
     console.error("Error fetching tasks:", error);
+
     return NextResponse.json(
       { error: "Failed to fetch tasks" },
       { status: 500 }
@@ -19,7 +20,7 @@ export async function GET() {
   }
 }
 
-// POST /api/tasks  → nieuwe task aanmaken
+// POST /api/tasks → nieuwe task aanmaken
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -39,6 +40,7 @@ export async function POST(request) {
           typeof progress === "number" && !Number.isNaN(progress)
             ? progress
             : 0,
+        // dueDate is String? in schema → we laten dat zo
         dueDate: dueDate ?? null,
       },
     });
@@ -46,6 +48,7 @@ export async function POST(request) {
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     console.error("Error creating task:", error);
+
     return NextResponse.json(
       { error: "Failed to create task" },
       { status: 500 }

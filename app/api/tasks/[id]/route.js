@@ -2,9 +2,19 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../../lib/prisma";
 
-// PATCH /api/tasks/:id  → status / progress / title / description / priority / dueDate bijwerken
-export async function PATCH(request) {
+// PATCH /api/tasks/:id → status / progress / title / description / priority / dueDate bijwerken
+export async function PATCH(request, context) {
   try {
+    const { params } = context;
+    const { id } = await params; // ⬅️ belangrijk: params is een Promise in Next 15
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Task id is required" },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { status, progress, title, description, priority, dueDate } = body;
 
@@ -17,27 +27,21 @@ export async function PATCH(request) {
     if (priority !== undefined) data.priority = priority;
     if (dueDate !== undefined) data.dueDate = dueDate;
 
-    console.log("PATCH /api/tasks (by title)", { title, data });
+    console.log("PATCH /api/tasks/:id", { id, data });
 
-    // Praktische workaround: update op basis van title
-    const result = await prisma.task.updateMany({
-      where: { title: title },
+    const updatedTask = await prisma.task.update({
+      where: { id: String(id) },
       data,
     });
 
-    if (result.count === 0) {
-      return NextResponse.json({ error: "Task not found" }, { status: 404 });
-    }
-
-    // Haal de geüpdatete task op (nieuwste met deze title)
-    const updated = await prisma.task.findFirst({
-      where: { title: title },
-      orderBy: { createdAt: "desc" },
-    });
-
-    return NextResponse.json(updated);
+    return NextResponse.json(updatedTask, { status: 200 });
   } catch (error) {
     console.error("Error updating task:", error);
+
+    // Prisma: record not found → nettere 404
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
 
     return NextResponse.json(
       {
@@ -51,20 +55,38 @@ export async function PATCH(request) {
   }
 }
 
-// DELETE /api/tasks/:id  → task verwijderen (nog wel op id)
-export async function DELETE(request, { params }) {
-  const { id } = await params;
-
+// DELETE /api/tasks/:id → task verwijderen op id
+export async function DELETE(request, context) {
   try {
+    const { params } = context;
+    const { id } = await params; // ⬅️ idem: eerst awaiten
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Task id is required" },
+        { status: 400 }
+      );
+    }
+
     console.log("DELETE /api/tasks/:id", { id });
 
-    await prisma.task.delete({
+    const deletedTask = await prisma.task.delete({
       where: { id: String(id) },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(
+      {
+        message: "Task deleted",
+        task: deletedTask,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error deleting task:", error);
+
+    if (error.code === "P2025") {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
 
     return NextResponse.json(
       {

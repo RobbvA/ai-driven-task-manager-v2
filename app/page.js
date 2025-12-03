@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
+import {
+  Box,
+  Heading,
+  Text,
+  VStack,
+  Flex,
+  Stack,
+  Button,
+} from "@chakra-ui/react";
 import Topbar from "../components/Topbar";
 import TaskTable from "../components/TaskTable";
 import AddTaskBar from "../components/AddTaskBar";
@@ -32,6 +40,9 @@ export default function HomePage() {
   // AI: which task is currently suggested as "next"
   const [suggestedTaskId, setSuggestedTaskId] = useState(null);
 
+  // UI: is de AI Next Task panel open?
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+
   // Load tasks from API on mount
   useEffect(() => {
     async function loadTasks() {
@@ -57,9 +68,6 @@ export default function HomePage() {
   const handleAddTask = async (title, priorityFromUI, descriptionFromUI) => {
     if (!title.trim()) return;
 
-    // Decide final priority:
-    // - if user chose "auto" → ask AI engine
-    // - otherwise use the selected priority
     let finalPriority;
 
     if (!priorityFromUI || priorityFromUI === "auto") {
@@ -74,7 +82,6 @@ export default function HomePage() {
       status: "To Do",
       priority: finalPriority,
       progress: 0,
-      // Later kun je dueDate dynamisch maken, nu gewoon leeg of een vaste datum:
       dueDate: null,
     };
 
@@ -111,8 +118,6 @@ export default function HomePage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // belangrijk: title meesturen zodat backend weet welke task
-          title: target.title,
           status: newStatus,
           progress: newProgress,
         }),
@@ -134,8 +139,12 @@ export default function HomePage() {
     }
   };
 
-  // Remove a task from the list (and DB)
+  // Remove a task from the list (and DB) – met optimistic update + rollback
   const handleDeleteTask = async (taskId) => {
+    const previousTasks = tasks;
+    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+    setSuggestedTaskId(null);
+
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: "DELETE",
@@ -143,13 +152,12 @@ export default function HomePage() {
 
       if (!res.ok) {
         console.error("Failed to delete task:", await res.text());
+        setTasks(previousTasks);
         return;
       }
-
-      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-      setSuggestedTaskId(null);
     } catch (error) {
       console.error("Error deleting task:", error);
+      setTasks(previousTasks);
     }
   };
 
@@ -194,7 +202,7 @@ export default function HomePage() {
     if (sortBy === "priority") {
       const aRank = priorityRank[a.priority] || 0;
       const bRank = priorityRank[b.priority] || 0;
-      result = aRank - bRank; // laag -> hoog
+      result = aRank - bRank;
     }
 
     if (sortBy === "dueDate") {
@@ -217,10 +225,19 @@ export default function HomePage() {
   });
 
   // AI: suggest next task (kijkt naar ALLE tasks, niet alleen gefilterde)
-  const handleSuggestNextTask = () => {
-    const next = suggestNextTask(tasks);
-    setSuggestedTaskId(next ? next.id : null);
-  };
+  const next = suggestNextTask(tasks);
+
+  if (!tasks.length) {
+    setSuggestedTaskId(null); // geen tasks
+    return;
+  }
+
+  if (!next) {
+    setSuggestedTaskId(false); // AI kon niets vinden
+    return;
+  }
+
+  setSuggestedTaskId(next.id);
 
   const suggestedTask =
     suggestedTaskId != null
@@ -230,55 +247,223 @@ export default function HomePage() {
   return (
     <Box minH="100vh" bg="#e9ecf5">
       <Topbar />
-      <Box as="main" px={6} py={6} maxW="1100px" mx="auto">
-        <VStack align="flex-start" spacing={2} mb={6}>
-          <Heading size="lg" color="#1f2335">
+
+      <Box
+        as="main"
+        px={{ base: 4, md: 6 }}
+        py={{ base: 4, md: 6 }}
+        maxW="1200px"
+        mx="auto"
+      >
+        {/* Page header */}
+        <VStack align="flex-start" spacing={1} mb={{ base: 4, md: 6 }}>
+          <Heading size={{ base: "md", md: "lg" }} color="#1f2335">
             Tasks overview
           </Heading>
-          <Text fontSize="sm" color="#6b708c">
+          <Text fontSize={{ base: "xs", md: "sm" }} color="#6b708c">
             Calm, focused overview of what matters most today.
           </Text>
         </VStack>
 
-        {/* Add Task bar (with AI priority + AI description) */}
-        <AddTaskBar onAddTask={handleAddTask} />
+        {/* Top: Add Task card met AI-knop eronder */}
+        <Stack spacing={4} mb={{ base: 4, md: 6 }}>
+          <Box
+            bg="white"
+            borderRadius="xl"
+            boxShadow="sm"
+            p={{ base: 3, md: 4 }}
+            border="1px solid"
+            borderColor="#dde2f2"
+          >
+            <Heading size="sm" mb={2} color="#1f2335">
+              Add a new task
+            </Heading>
+            <Text fontSize="xs" color="#8a8fad" mb={3}>
+              Capture what&apos;s on your mind — AI will help you prioritize.
+            </Text>
 
-        {/* AI Suggestion banner */}
-        <NextTaskBanner
-          suggestedTask={suggestedTask}
-          onSuggestNext={handleSuggestNextTask}
-        />
+            <AddTaskBar onAddTask={handleAddTask} />
 
-        {/* Status filters */}
-        <TaskFilters currentFilter={filter} onChangeFilter={setFilter} />
+            {/* Galaxy / rainbow AI pill onder de balk */}
+            <Box mt={3} display="flex" justifyContent="center">
+              <Button
+                onClick={() => {
+                  setIsAiPanelOpen((prev) => !prev);
+                  if (!isAiPanelOpen) {
+                    handleSuggestNextTask();
+                  }
+                }}
+                size="sm"
+                height="2.3rem"
+                px={6}
+                borderRadius="full"
+                bgGradient="linear(to-r, #4c6fff, #a855f7, #ec4899, #22d3ee)"
+                bgSize="200% 200%"
+                color="white"
+                boxShadow="0 0 24px rgba(88, 101, 242, 0.75)"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                gap={2}
+                fontSize="xs"
+                _hover={{
+                  boxShadow: "0 0 32px rgba(88, 101, 242, 0.95)",
+                  transform: "translateY(-1px)",
+                }}
+                _active={{
+                  transform: "translateY(0px) scale(0.98)",
+                }}
+              >
+                <Box
+                  w="18px"
+                  h="18px"
+                  borderRadius="full"
+                  bg="rgba(255,255,255,0.2)"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  fontWeight="bold"
+                  fontSize="sm"
+                >
+                  +
+                </Box>
 
-        {/* Priority filters */}
-        <TaskPriorityFilters
-          currentPriorityFilter={priorityFilter}
-          onChangePriorityFilter={setPriorityFilter}
-        />
+                <Text fontSize="xs">AI Next Task</Text>
+              </Button>
+            </Box>
 
-        {/* Sort bar */}
-        <TaskSortBar
-          sortBy={sortBy}
-          sortDirection={sortDirection}
-          onChangeSortBy={handleChangeSortBy}
-          onToggleDirection={handleToggleSortDirection}
-        />
+            {isAiPanelOpen && (
+              <Box
+                mt={3}
+                borderRadius="lg"
+                bg="#f5f6ff"
+                border="1px solid #dde2f2"
+                p={3}
+              >
+                <NextTaskBanner
+                  suggestedTask={suggestedTask}
+                  onSuggestNext={handleSuggestNextTask}
+                />
+              </Box>
+            )}
+          </Box>
+        </Stack>
 
-        {/* Task table */}
-        {isLoading ? (
-          <Text fontSize="sm" color="#6b708c" mt={4}>
-            Loading tasks…
-          </Text>
-        ) : (
-          <TaskTable
-            tasks={sortedTasks}
-            onToggleStatus={handleToggleStatus}
-            onDeleteTask={handleDeleteTask}
-            highlightedTaskId={suggestedTaskId}
-          />
-        )}
+        {/* Main content: filters + table */}
+        <Flex
+          gap={6}
+          align="flex-start"
+          direction={{ base: "column", lg: "row" }}
+        >
+          {/* Left column: filters & sorting */}
+          <Box
+            w={{ base: "100%", lg: "30%" }}
+            bg="white"
+            borderRadius="xl"
+            boxShadow="sm"
+            p={{ base: 3, md: 4 }}
+            border="1px solid"
+            borderColor="#dde2f2"
+          >
+            <Heading size="sm" mb={2} color="#1f2335">
+              Filters & sorting
+            </Heading>
+            <Text fontSize="xs" color="#8a8fad" mb={3}>
+              Narrow down your view and focus on what matters.
+            </Text>
+
+            <Stack spacing={4}>
+              <Box>
+                <Text
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  textTransform="uppercase"
+                  letterSpacing="0.06em"
+                  color="#9aa0c3"
+                  mb={2}
+                >
+                  Status
+                </Text>
+                <TaskFilters
+                  currentFilter={filter}
+                  onChangeFilter={setFilter}
+                />
+              </Box>
+
+              <Box borderBottom="1px solid #eceff7" my={1} />
+
+              <Box>
+                <Text
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  textTransform="uppercase"
+                  letterSpacing="0.06em"
+                  color="#9aa0c3"
+                  mb={2}
+                >
+                  Priority
+                </Text>
+                <TaskPriorityFilters
+                  currentPriorityFilter={priorityFilter}
+                  onChangePriorityFilter={setPriorityFilter}
+                />
+              </Box>
+
+              <Box borderBottom="1px solid #eceff7" my={1} />
+
+              <Box>
+                <Text
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  textTransform="uppercase"
+                  letterSpacing="0.06em"
+                  color="#9aa0c3"
+                  mb={2}
+                >
+                  Sort
+                </Text>
+                <TaskSortBar
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onChangeSortBy={handleChangeSortBy}
+                  onToggleDirection={handleToggleSortDirection}
+                />
+              </Box>
+            </Stack>
+          </Box>
+
+          {/* Right column: task list */}
+          <Box
+            flex="1"
+            bg="white"
+            borderRadius="xl"
+            boxShadow="sm"
+            p={{ base: 3, md: 4 }}
+            border="1px solid"
+            borderColor="#dde2f2"
+          >
+            <Heading size="sm" mb={2} color="#1f2335">
+              Task list
+            </Heading>
+            <Text fontSize="xs" color="#8a8fad" mb={3}>
+              All tasks in one calm overview. Toggle status or delete when
+              finished.
+            </Text>
+
+            {isLoading ? (
+              <Text fontSize="sm" color="#6b708c" mt={2}>
+                Loading tasks…
+              </Text>
+            ) : (
+              <TaskTable
+                tasks={sortedTasks}
+                onToggleStatus={handleToggleStatus}
+                onDeleteTask={handleDeleteTask}
+                highlightedTaskId={suggestedTaskId}
+              />
+            )}
+          </Box>
+        </Flex>
       </Box>
     </Box>
   );

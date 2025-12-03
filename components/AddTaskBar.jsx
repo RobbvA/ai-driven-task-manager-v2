@@ -91,11 +91,6 @@ export default function AddTaskBar({ onAddTask }) {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional: task description (AI can help you write this)…"
           />
-
-          <Text fontSize="xs" mt={0.5} color="#9aa0b8">
-            Use Auto (AI priority) to let the app pick a priority, and Enhance
-            with AI to generate a clear description.
-          </Text>
         </VStack>
       </form>
     </Box>
