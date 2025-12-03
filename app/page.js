@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Heading,
@@ -20,61 +20,60 @@ import NextTaskBanner from "../components/NextTaskBanner";
 import { suggestPriorityForTitle } from "../lib/aiPriorityEngine";
 import { suggestNextTask } from "../lib/aiNextTaskSuggester";
 
+const PRIORITY_RANK = {
+  Critical: 4,
+  High: 3,
+  Medium: 2,
+  Low: 1,
+};
+
 export default function HomePage() {
   // All tasks state
   const [tasks, setTasks] = useState([]);
 
-  // Loading/error state (simpel gehouden)
+  // Loading
   const [isLoading, setIsLoading] = useState(true);
 
-  // Status filter: "All" | "To Do" | "In Progress" | "Done"
+  // Filters & sorting
   const [filter, setFilter] = useState("All");
-
-  // Priority filter: "All" | "Critical" | "High" | "Medium" | "Low"
   const [priorityFilter, setPriorityFilter] = useState("All");
-
-  // Sorting: "none" | "priority" | "dueDate" | "progress"
   const [sortBy, setSortBy] = useState("none");
-  const [sortDirection, setSortDirection] = useState("asc"); // "asc" | "desc"
+  const [sortDirection, setSortDirection] = useState("asc");
 
-  // AI: which task is currently suggested as "next"
+  // AI state
   const [suggestedTaskId, setSuggestedTaskId] = useState(null);
+  const [aiState, setAiState] = useState("idle");
 
-  // UI: is de AI Next Task panel open?
-  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  // Tabs
+  const [activeTab, setActiveTab] = useState("plan");
 
-  // Load tasks from API on mount
+  // UI: is de AI Next Task card open/closed?
+  const [isAiCardOpen, setIsAiCardOpen] = useState(false);
+
+  // Load tasks
   useEffect(() => {
     async function loadTasks() {
       try {
         const res = await fetch("/api/tasks");
-        if (!res.ok) {
-          console.error("Failed to load tasks:", await res.text());
-          return;
-        }
         const data = await res.json();
         setTasks(data);
-      } catch (error) {
-        console.error("Error loading tasks:", error);
+      } catch (err) {
+        console.error("Failed to load tasks:", err);
       } finally {
         setIsLoading(false);
       }
     }
-
     loadTasks();
   }, []);
 
-  // Add a new task to the list (and DB)
+  // Add task
   const handleAddTask = async (title, priorityFromUI, descriptionFromUI) => {
     if (!title.trim()) return;
 
-    let finalPriority;
-
-    if (!priorityFromUI || priorityFromUI === "auto") {
-      finalPriority = suggestPriorityForTitle(title);
-    } else {
-      finalPriority = priorityFromUI;
-    }
+    let finalPriority =
+      !priorityFromUI || priorityFromUI === "auto"
+        ? suggestPriorityForTitle(title)
+        : priorityFromUI;
 
     const payload = {
       title: title.trim(),
@@ -91,21 +90,15 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        console.error("Failed to create task:", await res.text());
-        return;
-      }
-
       const created = await res.json();
       setTasks((prev) => [created, ...prev]);
-      setSuggestedTaskId(null);
-    } catch (error) {
-      console.error("Error creating task:", error);
+      setAiState("idle");
+    } catch (err) {
+      console.error("Failed to create task:", err);
     }
   };
 
-  // Toggle a task between "To Do" and "Done" (and update DB)
+  // Toggle task
   const handleToggleStatus = async (taskId) => {
     const target = tasks.find((t) => t.id === taskId);
     if (!target) return;
@@ -117,353 +110,322 @@ export default function HomePage() {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: newStatus,
-          progress: newProgress,
-        }),
+        body: JSON.stringify({ status: newStatus, progress: newProgress }),
       });
-
-      if (!res.ok) {
-        console.error("Failed to update task:", await res.text());
-        return;
-      }
 
       const updated = await res.json();
 
-      setTasks((prevTasks) =>
-        prevTasks.map((task) => (task.id === taskId ? updated : task))
-      );
-      setSuggestedTaskId(null);
-    } catch (error) {
-      console.error("Error updating task status:", error);
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+      setAiState("idle");
+    } catch (err) {
+      console.error("Failed to toggle status:", err);
     }
   };
 
-  // Remove a task from the list (and DB) – met optimistic update + rollback
+  // Delete task
   const handleDeleteTask = async (taskId) => {
-    const previousTasks = tasks;
-    setTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
-    setSuggestedTaskId(null);
+    const oldTasks = tasks;
+    setTasks(tasks.filter((t) => t.id !== taskId));
 
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed delete");
+    } catch (err) {
+      setTasks(oldTasks);
+      console.error(err);
+    }
+  };
 
-      if (!res.ok) {
-        console.error("Failed to delete task:", await res.text());
-        setTasks(previousTasks);
-        return;
+  // 🧠 Filtered → Sorted tasks
+  const filteredTasks = useMemo(
+    () =>
+      tasks.filter((t) => {
+        if (filter !== "All" && t.status !== filter) return false;
+        if (priorityFilter !== "All" && t.priority !== priorityFilter)
+          return false;
+        return true;
+      }),
+    [tasks, filter, priorityFilter]
+  );
+
+  const sortedTasks = useMemo(() => {
+    const list = [...filteredTasks];
+    if (sortBy === "none") return list;
+
+    return list.sort((a, b) => {
+      let val = 0;
+
+      if (sortBy === "priority") {
+        val = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+      } else if (sortBy === "progress") {
+        val = a.progress - b.progress;
+      } else if (sortBy === "dueDate") {
+        val = (a.dueDate || "").localeCompare(b.dueDate || "");
       }
-    } catch (error) {
-      console.error("Error deleting task:", error);
-      setTasks(previousTasks);
+
+      return sortDirection === "asc" ? val : -val;
+    });
+  }, [filteredTasks, sortBy, sortDirection]);
+
+  // ⭐ AI Next Task
+  const handleSuggestNextTask = () => {
+    if (!tasks.length) {
+      setSuggestedTaskId(null);
+      setAiState("no-tasks");
+      return;
     }
+
+    const next = suggestNextTask(tasks);
+
+    if (!next) {
+      setSuggestedTaskId(null);
+      setAiState("no-suggestion");
+      return;
+    }
+
+    setSuggestedTaskId(next.id);
+    setAiState("ok");
   };
-
-  // Change sort option
-  const handleChangeSortBy = (value) => {
-    setSortBy(value);
-
-    if (value === "priority" || value === "progress") {
-      setSortDirection("desc");
-    } else if (value === "dueDate") {
-      setSortDirection("asc");
-    }
-  };
-
-  // Toggle direction
-  const handleToggleSortDirection = () => {
-    setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
-  };
-
-  // Priority ranking for sorting
-  const priorityRank = {
-    Critical: 4,
-    High: 3,
-    Medium: 2,
-    Low: 1,
-  };
-
-  // 1) Filteren op status + priority
-  const filteredTasks = tasks.filter((task) => {
-    if (filter !== "All" && task.status !== filter) return false;
-    if (priorityFilter !== "All" && task.priority !== priorityFilter)
-      return false;
-    return true;
-  });
-
-  // 2) Sorteren op basis van sortBy + richting
-  const sortedTasks = [...filteredTasks].sort((a, b) => {
-    if (sortBy === "none") return 0;
-
-    let result = 0;
-
-    if (sortBy === "priority") {
-      const aRank = priorityRank[a.priority] || 0;
-      const bRank = priorityRank[b.priority] || 0;
-      result = aRank - bRank;
-    }
-
-    if (sortBy === "dueDate") {
-      const aDate = a.dueDate || "";
-      const bDate = b.dueDate || "";
-      if (aDate < bDate) result = -1;
-      else if (aDate > bDate) result = 1;
-      else result = 0;
-    }
-
-    if (sortBy === "progress") {
-      result = (a.progress || 0) - (b.progress || 0);
-    }
-
-    if (sortDirection === "desc") {
-      result = result * -1;
-    }
-
-    return result;
-  });
-
-  // AI: suggest next task (kijkt naar ALLE tasks, niet alleen gefilterde)
-  const next = suggestNextTask(tasks);
-
-  if (!tasks.length) {
-    setSuggestedTaskId(null); // geen tasks
-    return;
-  }
-
-  if (!next) {
-    setSuggestedTaskId(false); // AI kon niets vinden
-    return;
-  }
-
-  setSuggestedTaskId(next.id);
 
   const suggestedTask =
     suggestedTaskId != null
-      ? tasks.find((t) => t.id === suggestedTaskId) || null
+      ? tasks.find((t) => t.id === suggestedTaskId)
       : null;
 
   return (
     <Box minH="100vh" bg="#e9ecf5">
       <Topbar />
 
-      <Box
-        as="main"
-        px={{ base: 4, md: 6 }}
-        py={{ base: 4, md: 6 }}
-        maxW="1200px"
-        mx="auto"
-      >
-        {/* Page header */}
-        <VStack align="flex-start" spacing={1} mb={{ base: 4, md: 6 }}>
-          <Heading size={{ base: "md", md: "lg" }} color="#1f2335">
-            Tasks overview
+      <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
+        {/* Header */}
+        <VStack align="flex-start" spacing={1} mb={4}>
+          <Heading size="lg" color="#1f2335">
+            Today&apos;s tasks
           </Heading>
-          <Text fontSize={{ base: "xs", md: "sm" }} color="#6b708c">
-            Calm, focused overview of what matters most today.
+          <Text fontSize="sm" color="#6b708c">
+            Plan, focus, and let AI highlight what matters most.
           </Text>
         </VStack>
 
-        {/* Top: Add Task card met AI-knop eronder */}
-        <Stack spacing={4} mb={{ base: 4, md: 6 }}>
+        {/* Tabs */}
+        <Box mb={6}>
+          <Flex
+            bg="white"
+            borderRadius="full"
+            p="4px"
+            border="1px solid #dde2f2"
+            maxW="260px"
+            boxShadow="sm"
+          >
+            <Button
+              onClick={() => setActiveTab("plan")}
+              flex="1"
+              size="sm"
+              borderRadius="full"
+              fontSize="xs"
+              bg={activeTab === "plan" ? "#1f2335" : "transparent"}
+              color={activeTab === "plan" ? "white" : "#6b708c"}
+            >
+              Plan
+            </Button>
+
+            <Button
+              onClick={() => setActiveTab("tasks")}
+              flex="1"
+              size="sm"
+              borderRadius="full"
+              fontSize="xs"
+              bg={activeTab === "tasks" ? "#1f2335" : "transparent"}
+              color={activeTab === "tasks" ? "white" : "#6b708c"}
+            >
+              Tasks
+            </Button>
+          </Flex>
+        </Box>
+
+        {/* TAB 1: PLAN */}
+        {activeTab === "plan" && (
           <Box
             bg="white"
             borderRadius="xl"
+            p={4}
             boxShadow="sm"
-            p={{ base: 3, md: 4 }}
-            border="1px solid"
-            borderColor="#dde2f2"
+            border="1px solid #dde2f2"
           >
             <Heading size="sm" mb={2} color="#1f2335">
               Add a new task
             </Heading>
-            <Text fontSize="xs" color="#8a8fad" mb={3}>
-              Capture what&apos;s on your mind — AI will help you prioritize.
-            </Text>
 
             <AddTaskBar onAddTask={handleAddTask} />
+          </Box>
+        )}
 
-            {/* Galaxy / rainbow AI pill onder de balk */}
-            <Box mt={3} display="flex" justifyContent="center">
-              <Button
-                onClick={() => {
-                  setIsAiPanelOpen((prev) => !prev);
-                  if (!isAiPanelOpen) {
-                    handleSuggestNextTask();
-                  }
-                }}
-                size="sm"
-                height="2.3rem"
-                px={6}
-                borderRadius="full"
-                bgGradient="linear(to-r, #4c6fff, #a855f7, #ec4899, #22d3ee)"
-                bgSize="200% 200%"
-                color="white"
-                boxShadow="0 0 24px rgba(88, 101, 242, 0.75)"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                gap={2}
-                fontSize="xs"
-                _hover={{
-                  boxShadow: "0 0 32px rgba(88, 101, 242, 0.95)",
-                  transform: "translateY(-1px)",
-                }}
-                _active={{
-                  transform: "translateY(0px) scale(0.98)",
-                }}
-              >
-                <Box
-                  w="18px"
-                  h="18px"
+        {/* TAB 2: TASKS */}
+        {activeTab === "tasks" && (
+          <Stack spacing={4}>
+            {/* Filters */}
+            <Box
+              bg="white"
+              borderRadius="lg"
+              p={4}
+              boxShadow="sm"
+              border="1px solid #dde2f2"
+            >
+              <Stack direction={{ base: "column", md: "row" }} spacing={4}>
+                <Box flex="1">
+                  <Text fontSize="xs" color="#b0b4d0" mb={1}>
+                    Status
+                  </Text>
+                  <TaskFilters
+                    currentFilter={filter}
+                    onChangeFilter={setFilter}
+                  />
+                </Box>
+
+                <Box flex="1">
+                  <Text fontSize="xs" color="#b0b4d0" mb={1}>
+                    Priority
+                  </Text>
+                  <TaskPriorityFilters
+                    currentPriorityFilter={priorityFilter}
+                    onChangePriorityFilter={setPriorityFilter}
+                  />
+                </Box>
+
+                <Box flex="1">
+                  <Text fontSize="xs" color="#b0b4d0" mb={1}>
+                    Sort
+                  </Text>
+                  <TaskSortBar
+                    sortBy={sortBy}
+                    sortDirection={sortDirection}
+                    onChangeSortBy={setSortBy}
+                    onToggleDirection={() =>
+                      setSortDirection((prev) =>
+                        prev === "asc" ? "desc" : "asc"
+                      )
+                    }
+                  />
+                </Box>
+              </Stack>
+            </Box>
+
+            {/* AI Next Task – collapsible card */}
+            <Box
+              bg="white"
+              borderRadius="lg"
+              p={4}
+              border="1px solid #dde2f2"
+              boxShadow="sm"
+            >
+              {/* Header: titel + galaxy toggle button */}
+              <Flex justify="space-between" align="center">
+                <Heading size="sm" color="#1f2335">
+                  AI Next Task
+                </Heading>
+
+                <Button
+                  onClick={() => {
+                    setIsAiCardOpen((prev) => {
+                      const next = !prev;
+                      // wanneer hij open gaat → direct een suggestie proberen
+                      if (!prev) {
+                        handleSuggestNextTask();
+                      }
+                      return next;
+                    });
+                  }}
+                  size="sm"
+                  height="2.3rem"
+                  px={6}
                   borderRadius="full"
-                  bg="rgba(255,255,255,0.2)"
+                  bgGradient="linear(to-r, #4c6fff, #a855f7, #ec4899, #22d3ee)"
+                  bgSize="200% 200%"
+                  color="white"
+                  boxShadow="0 0 24px rgba(88, 101, 242, 0.75)"
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
-                  fontWeight="bold"
-                  fontSize="sm"
+                  gap={2}
+                  fontSize="xs"
+                  _hover={{
+                    boxShadow: "0 0 32px rgba(88, 101, 242, 0.95)",
+                    transform: "translateY(-1px)",
+                  }}
+                  _active={{
+                    transform: "translateY(0px) scale(0.98)",
+                  }}
                 >
-                  +
-                </Box>
+                  <Box
+                    w="18px"
+                    h="18px"
+                    borderRadius="full"
+                    bg="rgba(255,255,255,0.2)"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    fontWeight="bold"
+                    fontSize="sm"
+                  >
+                    {isAiCardOpen ? "–" : "+"}
+                  </Box>
 
-                <Text fontSize="xs">AI Next Task</Text>
-              </Button>
+                  <Text fontSize="xs">AI Next Task</Text>
+                </Button>
+              </Flex>
+
+              {/* Collapsible content */}
+              {isAiCardOpen && (
+                <Box
+                  mt={3}
+                  borderRadius="lg"
+                  bg="#f5f6ff"
+                  border="1px solid #dde2f2"
+                  p={3}
+                  animation="fadeIn 0.25s ease"
+                  sx={{
+                    "@keyframes fadeIn": {
+                      from: { opacity: 0, transform: "translateY(-4px)" },
+                      to: { opacity: 1, transform: "translateY(0)" },
+                    },
+                  }}
+                >
+                  <NextTaskBanner
+                    aiState={aiState}
+                    suggestedTask={suggestedTask}
+                    onSuggestNext={handleSuggestNextTask}
+                  />
+                </Box>
+              )}
             </Box>
 
-            {isAiPanelOpen && (
-              <Box
-                mt={3}
-                borderRadius="lg"
-                bg="#f5f6ff"
-                border="1px solid #dde2f2"
-                p={3}
-              >
-                <NextTaskBanner
-                  suggestedTask={suggestedTask}
-                  onSuggestNext={handleSuggestNextTask}
+            {/* Task list */}
+            <Box
+              bg="white"
+              borderRadius="xl"
+              p={4}
+              boxShadow="sm"
+              border="1px solid #dde2f2"
+            >
+              <Heading size="sm" mb={2}>
+                Task list
+              </Heading>
+
+              {isLoading ? (
+                <Text color="#6b708c">Loading tasks…</Text>
+              ) : sortedTasks.length === 0 ? (
+                <Text color="#9aa0c3">No tasks match your filters.</Text>
+              ) : (
+                <TaskTable
+                  tasks={sortedTasks}
+                  onToggleStatus={handleToggleStatus}
+                  onDeleteTask={handleDeleteTask}
+                  highlightedTaskId={suggestedTaskId}
                 />
-              </Box>
-            )}
-          </Box>
-        </Stack>
-
-        {/* Main content: filters + table */}
-        <Flex
-          gap={6}
-          align="flex-start"
-          direction={{ base: "column", lg: "row" }}
-        >
-          {/* Left column: filters & sorting */}
-          <Box
-            w={{ base: "100%", lg: "30%" }}
-            bg="white"
-            borderRadius="xl"
-            boxShadow="sm"
-            p={{ base: 3, md: 4 }}
-            border="1px solid"
-            borderColor="#dde2f2"
-          >
-            <Heading size="sm" mb={2} color="#1f2335">
-              Filters & sorting
-            </Heading>
-            <Text fontSize="xs" color="#8a8fad" mb={3}>
-              Narrow down your view and focus on what matters.
-            </Text>
-
-            <Stack spacing={4}>
-              <Box>
-                <Text
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  textTransform="uppercase"
-                  letterSpacing="0.06em"
-                  color="#9aa0c3"
-                  mb={2}
-                >
-                  Status
-                </Text>
-                <TaskFilters
-                  currentFilter={filter}
-                  onChangeFilter={setFilter}
-                />
-              </Box>
-
-              <Box borderBottom="1px solid #eceff7" my={1} />
-
-              <Box>
-                <Text
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  textTransform="uppercase"
-                  letterSpacing="0.06em"
-                  color="#9aa0c3"
-                  mb={2}
-                >
-                  Priority
-                </Text>
-                <TaskPriorityFilters
-                  currentPriorityFilter={priorityFilter}
-                  onChangePriorityFilter={setPriorityFilter}
-                />
-              </Box>
-
-              <Box borderBottom="1px solid #eceff7" my={1} />
-
-              <Box>
-                <Text
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  textTransform="uppercase"
-                  letterSpacing="0.06em"
-                  color="#9aa0c3"
-                  mb={2}
-                >
-                  Sort
-                </Text>
-                <TaskSortBar
-                  sortBy={sortBy}
-                  sortDirection={sortDirection}
-                  onChangeSortBy={handleChangeSortBy}
-                  onToggleDirection={handleToggleSortDirection}
-                />
-              </Box>
-            </Stack>
-          </Box>
-
-          {/* Right column: task list */}
-          <Box
-            flex="1"
-            bg="white"
-            borderRadius="xl"
-            boxShadow="sm"
-            p={{ base: 3, md: 4 }}
-            border="1px solid"
-            borderColor="#dde2f2"
-          >
-            <Heading size="sm" mb={2} color="#1f2335">
-              Task list
-            </Heading>
-            <Text fontSize="xs" color="#8a8fad" mb={3}>
-              All tasks in one calm overview. Toggle status or delete when
-              finished.
-            </Text>
-
-            {isLoading ? (
-              <Text fontSize="sm" color="#6b708c" mt={2}>
-                Loading tasks…
-              </Text>
-            ) : (
-              <TaskTable
-                tasks={sortedTasks}
-                onToggleStatus={handleToggleStatus}
-                onDeleteTask={handleDeleteTask}
-                highlightedTaskId={suggestedTaskId}
-              />
-            )}
-          </Box>
-        </Flex>
+              )}
+            </Box>
+          </Stack>
+        )}
       </Box>
     </Box>
   );
