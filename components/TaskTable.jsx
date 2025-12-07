@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Box, Text, HStack, VStack, Badge, Button } from "@chakra-ui/react";
 
 // Priority colors
@@ -17,12 +18,26 @@ const statusStyles = {
   Done: { bg: "#e3f5e7", color: "#2a7a3a" },
 };
 
+// Eén bron voor kolombreedtes → header & rows delen dit
+const GRID_TEMPLATE = {
+  base: "minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1.8fr)",
+  md: "minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1.8fr)",
+};
+
 export default function TaskTable({
   tasks,
   onToggleStatus,
   onDeleteTask,
   highlightedTaskId,
+  onEditTask,
 }) {
+  // welke task is "uitgeklapt"?
+  const [expandedTaskId, setExpandedTaskId] = useState(null);
+
+  const handleRowClick = (taskId) => {
+    setExpandedTaskId((prev) => (prev === taskId ? null : taskId));
+  };
+
   return (
     <Box
       bg="#ffffff"
@@ -32,80 +47,98 @@ export default function TaskTable({
       boxShadow="0 14px 30px rgba(15, 23, 42, 0.08)"
     >
       {/* Header row */}
-      <Box px={4} py={3} borderBottom="1px solid #d5d8e4" bg="#f2f4ff">
-        <HStack justify="space-between" spacing={6}>
-          <Text
-            fontSize="xs"
-            textTransform="uppercase"
-            letterSpacing="0.12em"
-            color="#8589ab"
-          >
-            Task
-          </Text>
-          <Text
-            fontSize="xs"
-            textTransform="uppercase"
-            letterSpacing="0.12em"
-            color="#a1a4c0"
-          >
-            Progress
-          </Text>
-          <Text
-            fontSize="xs"
-            textTransform="uppercase"
-            letterSpacing="0.12em"
-            color="#a1a4c0"
-          >
-            Priority
-          </Text>
-          <Text
-            fontSize="xs"
-            textTransform="uppercase"
-            letterSpacing="0.12em"
-            color="#a1a4c0"
-          >
-            Due
-          </Text>
+      <Box
+        px={4}
+        py={3}
+        borderBottom="1px solid #d5d8e4"
+        bg="#f2f4ff"
+        display="grid"
+        gridTemplateColumns={GRID_TEMPLATE}
+        columnGap={6}
+        alignItems="center"
+      >
+        <Text
+          fontSize="xs"
+          textTransform="uppercase"
+          letterSpacing="0.12em"
+          color="#8589ab"
+        >
+          Task
+        </Text>
 
-          <Text
-            fontSize="xs"
-            textTransform="uppercase"
-            letterSpacing="0.12em"
-            color="#a1a4c0"
-          >
-            Actions
-          </Text>
-        </HStack>
+        <Text
+          fontSize="xs"
+          textTransform="uppercase"
+          letterSpacing="0.12em"
+          color="#a1a4c0"
+        >
+          Progress
+        </Text>
+
+        <Text
+          fontSize="xs"
+          textTransform="uppercase"
+          letterSpacing="0.12em"
+          color="#a1a4c0"
+        >
+          Priority
+        </Text>
+
+        <Text
+          fontSize="xs"
+          textTransform="uppercase"
+          letterSpacing="0.12em"
+          color="#a1a4c0"
+        >
+          Due
+        </Text>
+
+        <Text
+          fontSize="xs"
+          textTransform="uppercase"
+          letterSpacing="0.12em"
+          color="#a1a4c0"
+          textAlign="right"
+        >
+          Actions
+        </Text>
       </Box>
 
       {/* Rows */}
-      <VStack spacing={0} w="100%" align="stretch">
+      <Box as="div">
         {tasks.map((task, index) => {
           const p = priorityStyles[task.priority] || priorityStyles.Medium;
           const s = statusStyles[task.status] || statusStyles["To Do"];
           const isDone = task.status === "Done";
           const isHighlighted = highlightedTaskId === task.id;
+          const isExpanded = expandedTaskId === task.id;
 
           return (
-            <Box
-              key={task.id}
-              px={4}
-              py={3}
-              borderBottom="1px solid #e3e5f2"
-              bg={
-                isHighlighted
-                  ? "#e4f3ff"
-                  : index % 2 === 0
-                  ? "#ffffff"
-                  : "#f7f8ff"
-              }
-              _hover={{ bg: isHighlighted ? "#d9ecff" : "#eef0ff" }}
-              transition="background-color 0.15s ease-out, box-shadow 0.15s ease-out"
-              boxShadow={isHighlighted ? "0 0 0 1px #4b9cff" : "none"}
-            >
-              <HStack justify="space-between" align="flex-start" spacing={6}>
-                {/* Task + description + status dot */}
-                <HStack spacing={3} minW="260px" align="flex-start">
+            <Box key={task.id}>
+              {/* hoofd-rij */}
+              <Box
+                px={4}
+                py={3}
+                borderBottom="1px solid #e3e5f2"
+                bg={
+                  isHighlighted
+                    ? "#e4f3ff"
+                    : index % 2 === 0
+                    ? "#ffffff"
+                    : "#f7f8ff"
+                }
+                _hover={{ bg: isHighlighted ? "#d9ecff" : "#eef0ff" }}
+                transition="background-color 0.15s ease-out, box-shadow 0.15s ease-out"
+                boxShadow={isHighlighted ? "0 0 0 1px #4b9cff" : "none"}
+                display="grid"
+                gridTemplateColumns={GRID_TEMPLATE}
+                columnGap={6}
+                alignItems="flex-start"
+                cursor="pointer"
+                onClick={() => handleRowClick(task.id)}
+              >
+                {/* Task column */}
+                <HStack spacing={3} align="flex-start" minW={0}>
                   <Box
                     w="10px"
                     h="10px"
@@ -118,47 +151,43 @@ export default function TaskTable({
                         ? "#b5baff"
                         : "#f4b000"
                     }
+                    flexShrink={0}
                   />
 
-                  <VStack spacing={1} align="flex-start">
+                  <VStack spacing={1} align="flex-start" minW={0}>
                     <Text
                       fontSize="sm"
                       as={isDone ? "s" : undefined}
                       opacity={isDone ? 0.6 : 1}
                       color="#1e2235"
+                      noOfLines={1}
                     >
                       {task.title}
                     </Text>
 
+                    <Box
+                      px={2}
+                      py={0.5}
+                      borderRadius="full"
+                      fontSize="xs"
+                      bg={s.bg}
+                      color={s.color}
+                    >
+                      {task.status}
+                    </Box>
+
                     {task.description && (
-                      <Text
-                        fontSize="xs"
-                        color="#6b708c"
-                        opacity={isDone ? 0.6 : 1}
-                        noOfLines={2}
-                        maxW="360px"
-                      >
-                        {task.description}
+                      <Text fontSize="xs" color="#a1a4c0" mt={0.5}>
+                        {isExpanded
+                          ? "Click to hide details"
+                          : "Click to view full description"}
                       </Text>
                     )}
-
-                    <HStack spacing={2}>
-                      <Box
-                        px={2}
-                        py={0.5}
-                        borderRadius="full"
-                        fontSize="xs"
-                        bg={s.bg}
-                        color={s.color}
-                      >
-                        {task.status}
-                      </Box>
-                    </HStack>
                   </VStack>
                 </HStack>
 
-                {/* Progress bar */}
-                <Box w="180px" mt={1}>
+                {/* Progress column */}
+                <Box mt={1} minW={0}>
                   <Box
                     w="100%"
                     h="6px"
@@ -168,7 +197,7 @@ export default function TaskTable({
                   >
                     <Box
                       h="100%"
-                      w={`${task.progress}%`}
+                      w={`${task.progress ?? 0}%`}
                       bg={isDone ? "#3fbf60" : "#b5baff"}
                       borderRadius="full"
                       transition="width 0.2s ease-out"
@@ -176,37 +205,43 @@ export default function TaskTable({
                   </Box>
                 </Box>
 
-                {/* Priority */}
-                <Badge
-                  px={3}
-                  py={1}
-                  borderRadius="md"
-                  bg={p.bg}
-                  color={p.color}
-                  fontSize="xs"
-                  textTransform="none"
-                >
-                  {task.priority}
-                </Badge>
+                {/* Priority column */}
+                <Box mt={1}>
+                  <Badge
+                    px={3}
+                    py={1}
+                    borderRadius="md"
+                    bg={p.bg}
+                    color={p.color}
+                    fontSize="xs"
+                    textTransform="none"
+                  >
+                    {task.priority}
+                  </Badge>
+                </Box>
 
-                {/* Due date */}
-                <Text
-                  opacity={0.85}
-                  minW="80px"
-                  textAlign="center"
-                  fontSize="sm"
-                  color="#4a4e62"
-                >
-                  {task.dueDate}
-                </Text>
+                {/* Due column */}
+                <Box mt={1}>
+                  <Text
+                    opacity={0.85}
+                    minW="80px"
+                    fontSize="sm"
+                    color="#4a4e62"
+                  >
+                    {task.dueDate || "—"}
+                  </Text>
+                </Box>
 
-                {/* Actions */}
-                <HStack spacing={2} mt={1}>
+                {/* Actions column */}
+                <HStack spacing={2} mt={1} justify="flex-end" align="center">
                   <Button
                     size="xs"
                     variant="ghost"
                     color="#4a4e62"
-                    onClick={() => onToggleStatus(task.id)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // voorkom uitklappen
+                      onToggleStatus(task.id);
+                    }}
                   >
                     Toggle
                   </Button>
@@ -214,17 +249,51 @@ export default function TaskTable({
                   <Button
                     size="xs"
                     variant="ghost"
+                    color="#4a4e62"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onEditTask) {
+                        onEditTask(task); // hele task doorgeven
+                      }
+                    }}
+                  >
+                    Edit
+                  </Button>
+
+                  <Button
+                    size="xs"
+                    variant="ghost"
                     color="#b3394a"
-                    onClick={() => onDeleteTask(task.id)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // voorkom uitklappen
+                      onDeleteTask(task.id);
+                    }}
                   >
                     Delete
                   </Button>
                 </HStack>
-              </HStack>
+              </Box>
+
+              {/* detailblok onder de rij */}
+              {isExpanded && task.description && (
+                <Box
+                  px={4}
+                  pb={3}
+                  bg="#f5f6ff"
+                  borderBottom="1px solid #e3e5f2"
+                >
+                  <Text fontSize="xs" color="#9aa0c3" mb={1}>
+                    Description
+                  </Text>
+                  <Text fontSize="sm" color="#4a4e62" whiteSpace="pre-wrap">
+                    {task.description}
+                  </Text>
+                </Box>
+              )}
             </Box>
           );
         })}
-      </VStack>
+      </Box>
     </Box>
   );
 }

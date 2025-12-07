@@ -17,6 +17,7 @@ import TaskFilters from "../components/TaskFilters";
 import TaskPriorityFilters from "../components/TaskPriorityFilters";
 import TaskSortBar from "../components/TaskSortBar";
 import NextTaskBanner from "../components/NextTaskBanner";
+import TaskEditModal from "../components/TaskEditModal"; // 👈 nieuw
 import { suggestPriorityForTitle } from "../lib/aiPriorityEngine";
 import { suggestNextTask } from "../lib/aiNextTaskSuggester";
 
@@ -49,6 +50,9 @@ export default function HomePage() {
 
   // UI: is de AI Next Task card open/closed?
   const [isAiCardOpen, setIsAiCardOpen] = useState(false);
+
+  // Edit task state
+  const [editingTask, setEditingTask] = useState(null);
 
   // Load tasks
   useEffect(() => {
@@ -134,6 +138,32 @@ export default function HomePage() {
       setTasks(oldTasks);
       console.error(err);
     }
+  };
+
+  // Update task (title, priority, description, etc.)
+  const handleUpdateTask = async (taskId, updates) => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update task");
+      }
+
+      const updated = await res.json();
+
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+      setAiState("idle");
+    } catch (err) {
+      console.error("Failed to update task:", err);
+    }
+  };
+
+  const handleStartEditTask = (task) => {
+    setEditingTask(task);
   };
 
   // 🧠 Filtered → Sorted tasks
@@ -421,11 +451,20 @@ export default function HomePage() {
                   onToggleStatus={handleToggleStatus}
                   onDeleteTask={handleDeleteTask}
                   highlightedTaskId={suggestedTaskId}
+                  onEditTask={handleStartEditTask}
                 />
               )}
             </Box>
           </Stack>
         )}
+
+        {/* Edit modal */}
+        <TaskEditModal
+          isOpen={!!editingTask}
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onSave={handleUpdateTask}
+        />
       </Box>
     </Box>
   );
