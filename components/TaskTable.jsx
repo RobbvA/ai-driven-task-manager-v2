@@ -1,7 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Box, Text, HStack, VStack, Badge, Button } from "@chakra-ui/react";
+import { useMemo, useState } from "react";
+import {
+  Box,
+  Text,
+  HStack,
+  VStack,
+  Badge,
+  Button,
+  Dialog,
+} from "@chakra-ui/react";
 
 // Priority colors
 const priorityStyles = {
@@ -34,9 +42,31 @@ export default function TaskTable({
   // welke task is "uitgeklapt"?
   const [expandedTaskId, setExpandedTaskId] = useState(null);
 
+  // explainability dialog
+  const [whyTask, setWhyTask] = useState(null);
+
   const handleRowClick = (taskId) => {
     setExpandedTaskId((prev) => (prev === taskId ? null : taskId));
   };
+
+  const canExplain = (task) =>
+    task?.prioritySource === "ai" &&
+    task?.priorityReasons &&
+    Array.isArray(task.priorityReasons);
+
+  // Only show reasons that match the chosen priority category (coherent explainability)
+  const reasonsForChosenPriority = useMemo(() => {
+    if (!whyTask) return [];
+    if (!Array.isArray(whyTask.priorityReasons)) return [];
+    return whyTask.priorityReasons.filter(
+      (r) => r?.category === whyTask.priority
+    );
+  }, [whyTask]);
+
+  const scoreLabel =
+    whyTask && typeof whyTask.priorityScore === "number"
+      ? `${whyTask.priorityScore}/100`
+      : "—";
 
   return (
     <Box
@@ -207,17 +237,48 @@ export default function TaskTable({
 
                 {/* Priority column */}
                 <Box mt={1}>
-                  <Badge
-                    px={3}
-                    py={1}
-                    borderRadius="md"
-                    bg={p.bg}
-                    color={p.color}
-                    fontSize="xs"
-                    textTransform="none"
-                  >
-                    {task.priority}
-                  </Badge>
+                  <HStack spacing={2}>
+                    <Badge
+                      px={3}
+                      py={1}
+                      borderRadius="md"
+                      bg={p.bg}
+                      color={p.color}
+                      fontSize="xs"
+                      textTransform="none"
+                    >
+                      {task.priority}
+                    </Badge>
+
+                    {task.prioritySource === "ai" && (
+                      <Badge
+                        px={2}
+                        py={1}
+                        borderRadius="md"
+                        bg="#eef0ff"
+                        color="#374074"
+                        fontSize="xs"
+                        textTransform="none"
+                      >
+                        AI
+                      </Badge>
+                    )}
+
+                    {canExplain(task) && (
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        border="1px solid #dde2f2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWhyTask(task);
+                        }}
+                        _hover={{ bg: "#eef0ff" }}
+                      >
+                        Why?
+                      </Button>
+                    )}
+                  </HStack>
                 </Box>
 
                 {/* Due column */}
@@ -252,9 +313,7 @@ export default function TaskTable({
                     color="#4a4e62"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (onEditTask) {
-                        onEditTask(task); // hele task doorgeven
-                      }
+                      if (onEditTask) onEditTask(task);
                     }}
                   >
                     Edit
@@ -294,6 +353,105 @@ export default function TaskTable({
           );
         })}
       </Box>
+
+      {/* Chakra v3 Dialog (replaces Modal) */}
+      <Dialog.Root
+        open={!!whyTask}
+        onOpenChange={(details) => {
+          if (!details.open) setWhyTask(null);
+        }}
+        size="lg"
+        placement="center"
+      >
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.CloseTrigger />
+
+            <Dialog.Header>
+              <Dialog.Title>AI Priority Explanation</Dialog.Title>
+            </Dialog.Header>
+
+            <Dialog.Body>
+              {whyTask && (
+                <VStack align="stretch" spacing={3}>
+                  {/* Top summary */}
+                  <Box
+                    border="1px solid #e3e5f2"
+                    borderRadius="md"
+                    p={3}
+                    bg="#f7f8ff"
+                  >
+                    <HStack justify="space-between" align="flex-start">
+                      <Box>
+                        <Text fontSize="sm" color="#4a4e62">
+                          <strong>Priority:</strong> {whyTask.priority}
+                        </Text>
+                        <Text fontSize="xs" color="#9aa0c3" mt={1}>
+                          Model: {whyTask.priorityModelVersion || "—"}
+                        </Text>
+                      </Box>
+
+                      <Badge
+                        px={2}
+                        py={1}
+                        borderRadius="md"
+                        bg="#eef0ff"
+                        color="#374074"
+                        fontSize="xs"
+                        textTransform="none"
+                      >
+                        Score {scoreLabel}
+                      </Badge>
+                    </HStack>
+                  </Box>
+
+                  {/* Reasons (only the chosen category) */}
+                  <Box>
+                    <Text fontSize="xs" color="#9aa0c3" mb={2}>
+                      Matched reasons (for {whyTask.priority})
+                    </Text>
+
+                    {reasonsForChosenPriority.length > 0 ? (
+                      <VStack align="stretch" spacing={2}>
+                        {reasonsForChosenPriority.map((r, idx) => (
+                          <Box
+                            key={`${r.ruleId || "rule"}-${idx}`}
+                            border="1px solid #e3e5f2"
+                            borderRadius="md"
+                            p={3}
+                          >
+                            <Text fontSize="sm" color="#1e2235">
+                              {r.rationale || "Matched rule"}
+                            </Text>
+                            <Text fontSize="xs" color="#9aa0c3">
+                              Rule: {r.ruleId} • Keyword: {r.keyword} • Weight:{" "}
+                              {r.weight}
+                            </Text>
+                          </Box>
+                        ))}
+                      </VStack>
+                    ) : (
+                      <Text fontSize="sm" color="#4a4e62">
+                        No reasons available for the chosen priority.
+                      </Text>
+                    )}
+                  </Box>
+
+                  <Text fontSize="xs" color="#9aa0c3">
+                    Deterministic, rule-based suggestion. You can override
+                    manually.
+                  </Text>
+                </VStack>
+              )}
+            </Dialog.Body>
+
+            <Dialog.Footer>
+              <Button onClick={() => setWhyTask(null)}>Close</Button>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
     </Box>
   );
 }

@@ -18,7 +18,6 @@ import TaskPriorityFilters from "../components/TaskPriorityFilters";
 import TaskSortBar from "../components/TaskSortBar";
 import NextTaskBanner from "../components/NextTaskBanner";
 import TaskEditModal from "../components/TaskEditModal"; // 👈 nieuw
-import { suggestPriorityForTitle } from "../lib/aiPriorityEngine";
 import { suggestNextTask } from "../lib/aiNextTaskSuggester";
 
 const PRIORITY_RANK = {
@@ -70,20 +69,30 @@ export default function HomePage() {
     loadTasks();
   }, []);
 
-  // Add task
-  const handleAddTask = async (title, priorityFromUI, descriptionFromUI) => {
+  /**
+   * Add task (V2.3)
+   * - If prioritySource === "ai": server computes priority + explainability and persists it
+   * - If prioritySource === "manual": server stores provided priority
+   */
+  const handleAddTask = async (
+    title,
+    priorityFromUI,
+    descriptionFromUI,
+    prioritySource
+  ) => {
     if (!title.trim()) return;
 
-    let finalPriority =
-      !priorityFromUI || priorityFromUI === "auto"
-        ? suggestPriorityForTitle(title)
-        : priorityFromUI;
+    const source = prioritySource === "ai" ? "ai" : "manual";
 
     const payload = {
       title: title.trim(),
       description: descriptionFromUI?.trim() || "",
       status: "To Do",
-      priority: finalPriority,
+
+      // Always send a priority value; server will override when source === "ai"
+      priority: priorityFromUI || "Medium",
+      prioritySource: source,
+
       progress: 0,
       dueDate: null,
     };
@@ -94,7 +103,15 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
       const created = await res.json();
+
+      // Basic error guard (optional but safe)
+      if (!res.ok) {
+        console.error("Failed to create task:", created);
+        return;
+      }
+
       setTasks((prev) => [created, ...prev]);
       setAiState("idle");
     } catch (err) {
@@ -118,6 +135,11 @@ export default function HomePage() {
       });
 
       const updated = await res.json();
+
+      if (!res.ok) {
+        console.error("Failed to toggle status:", updated);
+        return;
+      }
 
       setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
       setAiState("idle");
@@ -149,11 +171,12 @@ export default function HomePage() {
         body: JSON.stringify(updates),
       });
 
+      const updated = await res.json();
+
       if (!res.ok) {
+        console.error("Failed to update task:", updated);
         throw new Error("Failed to update task");
       }
-
-      const updated = await res.json();
 
       setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
       setAiState("idle");
@@ -358,7 +381,6 @@ export default function HomePage() {
                   onClick={() => {
                     setIsAiCardOpen((prev) => {
                       const next = !prev;
-                      // wanneer hij open gaat → direct een suggestie proberen
                       if (!prev) {
                         handleSuggestNextTask();
                       }

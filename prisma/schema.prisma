@@ -10,12 +10,19 @@ datasource db {
 }
 
 model Task {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  status      String   @default("To Do")
-  priority    String   @default("Medium")
-  progress    Int      @default(0)
-  dueDate     String?
-  createdAt   DateTime @default(now())
+  id                   String   @id @default(cuid())
+  title                String
+  description          String?
+  status               String   @default("To Do")
+  priority             String   @default("Medium")
+
+  // V2.3 Explainability (persisted)
+  prioritySource       String   @default("manual") // "manual" | "ai"
+  priorityScore        Int?
+  priorityReasons      Json?
+  priorityModelVersion String?
+
+  progress             Int      @default(0)
+  dueDate              String?
+  createdAt            DateTime @default(now())
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Box, HStack, VStack, Input, Button, Text } from "@chakra-ui/react";
+import { Box, HStack, VStack, Input, Button } from "@chakra-ui/react";
 import { enhanceTaskDescription } from "../lib/aiTaskEnhancer";
 
 export default function AddTaskBar({ onAddTask }) {
@@ -15,9 +15,13 @@ export default function AddTaskBar({ onAddTask }) {
     const trimmed = title.trim();
     if (!trimmed) return;
 
-    onAddTask(trimmed, priority, description);
+    // Map UI selection -> source + priority
+    const prioritySource = priority === "auto" ? "ai" : "manual";
+    const selectedPriority = priority === "auto" ? "Medium" : priority;
 
-    // reset form
+    // Parent should POST: { title, description, prioritySource, priority: selectedPriority, ... }
+    onAddTask(trimmed, selectedPriority, description, prioritySource);
+
     setTitle("");
     setPriority("auto");
     setDescription("");
@@ -25,7 +29,6 @@ export default function AddTaskBar({ onAddTask }) {
 
   const handleEnhance = () => {
     if (!title.trim()) return;
-
     const enhanced = enhanceTaskDescription(title, description);
     setDescription(enhanced);
   };
@@ -43,7 +46,6 @@ export default function AddTaskBar({ onAddTask }) {
               onChange={(e) => setTitle(e.target.value)}
             />
 
-            {/* Native select, styled via Box */}
             <Box
               as="select"
               size="sm"
@@ -77,7 +79,6 @@ export default function AddTaskBar({ onAddTask }) {
             </Button>
           </HStack>
 
-          {/* Description textarea (native, via Box) */}
           <Box
             as="textarea"
             rows={2}
