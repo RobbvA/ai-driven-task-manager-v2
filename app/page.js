@@ -17,8 +17,9 @@ import TaskFilters from "../components/TaskFilters";
 import TaskPriorityFilters from "../components/TaskPriorityFilters";
 import TaskSortBar from "../components/TaskSortBar";
 import NextTaskBanner from "../components/NextTaskBanner";
-import TaskEditModal from "../components/TaskEditModal"; // 👈 nieuw
-import { suggestNextTask } from "../lib/aiNextTaskSuggester";
+import TaskEditModal from "../components/TaskEditModal";
+import { suggestNextTaskDetailed } from "../lib/aiNextTaskSuggester";
+import RotateHint from "../components/RotateHint";
 
 const PRIORITY_RANK = {
   Critical: 4,
@@ -43,6 +44,9 @@ export default function HomePage() {
   // AI state
   const [suggestedTaskId, setSuggestedTaskId] = useState(null);
   const [aiState, setAiState] = useState("idle");
+
+  // NEW: explainability for AI Next Task
+  const [nextExplainability, setNextExplainability] = useState(null);
 
   // Tabs
   const [activeTab, setActiveTab] = useState("plan");
@@ -224,19 +228,22 @@ export default function HomePage() {
   const handleSuggestNextTask = () => {
     if (!tasks.length) {
       setSuggestedTaskId(null);
+      setNextExplainability(null);
       setAiState("no-tasks");
       return;
     }
 
-    const next = suggestNextTask(tasks);
+    const detailed = suggestNextTaskDetailed(tasks);
 
-    if (!next) {
+    if (!detailed || !detailed.taskId) {
       setSuggestedTaskId(null);
+      setNextExplainability(null);
       setAiState("no-suggestion");
       return;
     }
 
-    setSuggestedTaskId(next.id);
+    setSuggestedTaskId(detailed.taskId);
+    setNextExplainability(detailed);
     setAiState("ok");
   };
 
@@ -248,6 +255,7 @@ export default function HomePage() {
   return (
     <Box minH="100vh" bg="#e9ecf5">
       <Topbar />
+      <RotateHint />
 
       <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
         {/* Header */}
@@ -446,6 +454,7 @@ export default function HomePage() {
                     aiState={aiState}
                     suggestedTask={suggestedTask}
                     onSuggestNext={handleSuggestNextTask}
+                    nextExplainability={nextExplainability}
                   />
                 </Box>
               )}
