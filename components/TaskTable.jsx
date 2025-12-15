@@ -249,7 +249,6 @@ export default function TaskTable({
                     >
                       {task.priority}
                     </Badge>
-
                     {task.prioritySource === "ai" && (
                       <Badge
                         px={2}
@@ -263,20 +262,36 @@ export default function TaskTable({
                         AI
                       </Badge>
                     )}
-
                     {canExplain(task) && (
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        border="1px solid #dde2f2"
+                      <Box
+                        as="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setWhyTask(task);
                         }}
-                        _hover={{ bg: "#eef0ff" }}
+                        display="inline-flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        w="22px"
+                        h="22px"
+                        borderRadius="full"
+                        border="1px solid #dde2f2"
+                        bg="#ffffff"
+                        color="#4a4e62"
+                        fontSize="xs"
+                        fontWeight="bold"
+                        cursor="pointer"
+                        _hover={{
+                          bg: "#eef0ff",
+                          color: "#374074",
+                        }}
+                        _active={{
+                          transform: "scale(0.95)",
+                        }}
+                        title="Why did AI choose this?"
                       >
-                        Why?
-                      </Button>
+                        ?
+                      </Box>
                     )}
                   </HStack>
                 </Box>
