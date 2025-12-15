@@ -11,22 +11,46 @@ import {
   Dialog,
 } from "@chakra-ui/react";
 
-// Priority colors
-const priorityStyles = {
-  Critical: { bg: "#ffe5ea", color: "#b3394a" },
-  High: { bg: "#ffe9d6", color: "#b97228" },
-  Medium: { bg: "#fff5cf", color: "#887626" },
-  Low: { bg: "#eef1f5", color: "#4a4e62" },
+// Subtle accent palette (soft, non-screamy)
+const PRIORITY_STYLES = {
+  Critical: {
+    bg: "#fff1f2", // rose-50
+    color: "#9f1239", // rose-800
+    border: "#fecdd3", // rose-200
+    dot: "#e11d48", // rose-600
+    bar: "#fb7185", // rose-400
+  },
+  High: {
+    bg: "#fff7ed", // orange-50
+    color: "#9a3412", // orange-800
+    border: "#fed7aa", // orange-200
+    dot: "#f97316", // orange-500
+    bar: "#fdba74", // orange-300/400-ish
+  },
+  Medium: {
+    bg: "#fefce8", // yellow-50
+    color: "#854d0e", // yellow-800
+    border: "#fde68a", // yellow-200
+    dot: "#eab308", // yellow-500
+    bar: "#facc15", // yellow-400/500
+  },
+  Low: {
+    bg: "#f0fdf4", // green-50
+    color: "#166534", // green-800
+    border: "#bbf7d0", // green-200
+    dot: "#22c55e", // green-500
+    bar: "#86efac", // green-300/400
+  },
 };
 
-// Status colors
-const statusStyles = {
-  "To Do": { bg: "#e8eafc", color: "#4a4e62" },
-  "In Progress": { bg: "#dde3ff", color: "#374074" },
-  Done: { bg: "#e3f5e7", color: "#2a7a3a" },
+// Status colors stay calm, but slightly clearer
+const STATUS_STYLES = {
+  "To Do": { bg: "#eef0ff", color: "#3b3f63", border: "#d7dcff" },
+  "In Progress": { bg: "#e0e7ff", color: "#2b3a7a", border: "#c7d2fe" },
+  Done: { bg: "#ecfdf5", color: "#166534", border: "#bbf7d0" },
 };
 
-// Eén bron voor kolombreedtes → header & rows delen dit
+// Shared grid template
 const GRID_TEMPLATE = {
   base: "minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1.8fr)",
   md: "minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1.8fr)",
@@ -39,10 +63,7 @@ export default function TaskTable({
   highlightedTaskId,
   onEditTask,
 }) {
-  // welke task is "uitgeklapt"?
   const [expandedTaskId, setExpandedTaskId] = useState(null);
-
-  // explainability dialog
   const [whyTask, setWhyTask] = useState(null);
 
   const handleRowClick = (taskId) => {
@@ -51,10 +72,10 @@ export default function TaskTable({
 
   const canExplain = (task) =>
     task?.prioritySource === "ai" &&
-    task?.priorityReasons &&
-    Array.isArray(task.priorityReasons);
+    Array.isArray(task?.priorityReasons) &&
+    task.priorityReasons.length > 0;
 
-  // Only show reasons that match the chosen priority category (coherent explainability)
+  // Only show reasons that match the chosen priority (prevents confusing mixed buckets)
   const reasonsForChosenPriority = useMemo(() => {
     if (!whyTask) return [];
     if (!Array.isArray(whyTask.priorityReasons)) return [];
@@ -62,11 +83,6 @@ export default function TaskTable({
       (r) => r?.category === whyTask.priority
     );
   }, [whyTask]);
-
-  const scoreLabel =
-    whyTask && typeof whyTask.priorityScore === "number"
-      ? `${whyTask.priorityScore}/100`
-      : "—";
 
   return (
     <Box
@@ -137,29 +153,34 @@ export default function TaskTable({
       {/* Rows */}
       <Box as="div">
         {tasks.map((task, index) => {
-          const p = priorityStyles[task.priority] || priorityStyles.Medium;
-          const s = statusStyles[task.status] || statusStyles["To Do"];
+          const pr = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.Medium;
+          const st = STATUS_STYLES[task.status] || STATUS_STYLES["To Do"];
+
           const isDone = task.status === "Done";
           const isHighlighted = highlightedTaskId === task.id;
           const isExpanded = expandedTaskId === task.id;
 
+          // Row accent: subtle left strip ties to priority
+          const rowAccent = isDone ? "#22c55e" : pr.dot;
+
           return (
             <Box key={task.id}>
-              {/* hoofd-rij */}
+              {/* main row */}
               <Box
                 px={4}
                 py={3}
                 borderBottom="1px solid #e3e5f2"
+                position="relative"
                 bg={
                   isHighlighted
-                    ? "#e4f3ff"
+                    ? "#eef7ff"
                     : index % 2 === 0
                     ? "#ffffff"
                     : "#f7f8ff"
                 }
-                _hover={{ bg: isHighlighted ? "#d9ecff" : "#eef0ff" }}
+                _hover={{ bg: isHighlighted ? "#e4f2ff" : "#eef0ff" }}
                 transition="background-color 0.15s ease-out, box-shadow 0.15s ease-out"
-                boxShadow={isHighlighted ? "0 0 0 1px #4b9cff" : "none"}
+                boxShadow={isHighlighted ? "0 0 0 1px #93c5fd" : "none"}
                 display="grid"
                 gridTemplateColumns={GRID_TEMPLATE}
                 columnGap={6}
@@ -167,8 +188,20 @@ export default function TaskTable({
                 cursor="pointer"
                 onClick={() => handleRowClick(task.id)}
               >
+                {/* Left accent strip */}
+                <Box
+                  position="absolute"
+                  left="0"
+                  top="0"
+                  bottom="0"
+                  w="4px"
+                  bg={rowAccent}
+                  opacity={isHighlighted ? 0.9 : 0.55}
+                />
+
                 {/* Task column */}
                 <HStack spacing={3} align="flex-start" minW={0}>
+                  {/* status dot */}
                   <Box
                     w="10px"
                     h="10px"
@@ -176,10 +209,10 @@ export default function TaskTable({
                     mt={1}
                     bg={
                       isDone
-                        ? "#3fbf60"
+                        ? "#22c55e"
                         : task.status === "In Progress"
-                        ? "#b5baff"
-                        : "#f4b000"
+                        ? "#6366f1"
+                        : "#f59e0b"
                     }
                     flexShrink={0}
                   />
@@ -195,13 +228,16 @@ export default function TaskTable({
                       {task.title}
                     </Text>
 
+                    {/* Status pill (now with border for clarity) */}
                     <Box
                       px={2}
                       py={0.5}
                       borderRadius="full"
                       fontSize="xs"
-                      bg={s.bg}
-                      color={s.color}
+                      bg={st.bg}
+                      color={st.color}
+                      border="1px solid"
+                      borderColor={st.border}
                     >
                       {task.status}
                     </Box>
@@ -220,7 +256,7 @@ export default function TaskTable({
                 <Box mt={1} minW={0}>
                   <Box
                     w="100%"
-                    h="6px"
+                    h="7px"
                     bg="#e2e4f0"
                     borderRadius="full"
                     overflow="hidden"
@@ -228,7 +264,7 @@ export default function TaskTable({
                     <Box
                       h="100%"
                       w={`${task.progress ?? 0}%`}
-                      bg={isDone ? "#3fbf60" : "#b5baff"}
+                      bg={isDone ? "#22c55e" : pr.bar}
                       borderRadius="full"
                       transition="width 0.2s ease-out"
                     />
@@ -242,26 +278,17 @@ export default function TaskTable({
                       px={3}
                       py={1}
                       borderRadius="md"
-                      bg={p.bg}
-                      color={p.color}
+                      bg={pr.bg}
+                      color={pr.color}
+                      border="1px solid"
+                      borderColor={pr.border}
                       fontSize="xs"
                       textTransform="none"
                     >
                       {task.priority}
                     </Badge>
-                    {task.prioritySource === "ai" && (
-                      <Badge
-                        px={2}
-                        py={1}
-                        borderRadius="md"
-                        bg="#eef0ff"
-                        color="#374074"
-                        fontSize="xs"
-                        textTransform="none"
-                      >
-                        AI
-                      </Badge>
-                    )}
+
+                    {/* compact "?" icon — consistent with next task */}
                     {canExplain(task) && (
                       <Box
                         as="button"
@@ -281,14 +308,10 @@ export default function TaskTable({
                         fontSize="xs"
                         fontWeight="bold"
                         cursor="pointer"
-                        _hover={{
-                          bg: "#eef0ff",
-                          color: "#374074",
-                        }}
-                        _active={{
-                          transform: "scale(0.95)",
-                        }}
-                        title="Why did AI choose this?"
+                        _hover={{ bg: "#eef0ff", color: "#374074" }}
+                        _active={{ transform: "scale(0.95)" }}
+                        title="Why this priority?"
+                        aria-label="Why this priority?"
                       >
                         ?
                       </Box>
@@ -298,12 +321,7 @@ export default function TaskTable({
 
                 {/* Due column */}
                 <Box mt={1}>
-                  <Text
-                    opacity={0.85}
-                    minW="80px"
-                    fontSize="sm"
-                    color="#4a4e62"
-                  >
+                  <Text opacity={0.9} minW="80px" fontSize="sm" color="#4a4e62">
                     {task.dueDate || "—"}
                   </Text>
                 </Box>
@@ -315,7 +333,7 @@ export default function TaskTable({
                     variant="ghost"
                     color="#4a4e62"
                     onClick={(e) => {
-                      e.stopPropagation(); // voorkom uitklappen
+                      e.stopPropagation();
                       onToggleStatus(task.id);
                     }}
                   >
@@ -339,7 +357,7 @@ export default function TaskTable({
                     variant="ghost"
                     color="#b3394a"
                     onClick={(e) => {
-                      e.stopPropagation(); // voorkom uitklappen
+                      e.stopPropagation();
                       onDeleteTask(task.id);
                     }}
                   >
@@ -348,7 +366,7 @@ export default function TaskTable({
                 </HStack>
               </Box>
 
-              {/* detailblok onder de rij */}
+              {/* detail block */}
               {isExpanded && task.description && (
                 <Box
                   px={4}
@@ -369,7 +387,7 @@ export default function TaskTable({
         })}
       </Box>
 
-      {/* Chakra v3 Dialog (replaces Modal) */}
+      {/* Priority explainability Dialog (Chakra v3) */}
       <Dialog.Root
         open={!!whyTask}
         onOpenChange={(details) => {
@@ -382,7 +400,6 @@ export default function TaskTable({
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.CloseTrigger />
-
             <Dialog.Header>
               <Dialog.Title>AI Priority Explanation</Dialog.Title>
             </Dialog.Header>
@@ -390,41 +407,29 @@ export default function TaskTable({
             <Dialog.Body>
               {whyTask && (
                 <VStack align="stretch" spacing={3}>
-                  {/* Top summary */}
                   <Box
                     border="1px solid #e3e5f2"
                     borderRadius="md"
                     p={3}
                     bg="#f7f8ff"
                   >
-                    <HStack justify="space-between" align="flex-start">
-                      <Box>
-                        <Text fontSize="sm" color="#4a4e62">
-                          <strong>Priority:</strong> {whyTask.priority}
-                        </Text>
-                        <Text fontSize="xs" color="#9aa0c3" mt={1}>
-                          Model: {whyTask.priorityModelVersion || "—"}
-                        </Text>
-                      </Box>
-
-                      <Badge
-                        px={2}
-                        py={1}
-                        borderRadius="md"
-                        bg="#eef0ff"
-                        color="#374074"
-                        fontSize="xs"
-                        textTransform="none"
-                      >
-                        Score {scoreLabel}
-                      </Badge>
-                    </HStack>
+                    <Text fontSize="sm" color="#4a4e62">
+                      <strong>Priority:</strong> {whyTask.priority}
+                    </Text>
+                    <Text fontSize="sm" color="#4a4e62">
+                      <strong>Score:</strong>{" "}
+                      {typeof whyTask.priorityScore === "number"
+                        ? `${whyTask.priorityScore}/100`
+                        : "—"}
+                    </Text>
+                    <Text fontSize="xs" color="#9aa0c3">
+                      Model: {whyTask.priorityModelVersion || "—"}
+                    </Text>
                   </Box>
 
-                  {/* Reasons (only the chosen category) */}
                   <Box>
                     <Text fontSize="xs" color="#9aa0c3" mb={2}>
-                      Matched reasons (for {whyTask.priority})
+                      Matched reasons
                     </Text>
 
                     {reasonsForChosenPriority.length > 0 ? (
@@ -435,6 +440,7 @@ export default function TaskTable({
                             border="1px solid #e3e5f2"
                             borderRadius="md"
                             p={3}
+                            bg="#ffffff"
                           >
                             <Text fontSize="sm" color="#1e2235">
                               {r.rationale || "Matched rule"}
@@ -448,14 +454,13 @@ export default function TaskTable({
                       </VStack>
                     ) : (
                       <Text fontSize="sm" color="#4a4e62">
-                        No reasons available for the chosen priority.
+                        No reasons stored for this priority.
                       </Text>
                     )}
                   </Box>
 
                   <Text fontSize="xs" color="#9aa0c3">
-                    Deterministic, rule-based suggestion. You can override
-                    manually.
+                    Deterministic rules. You can override priority manually.
                   </Text>
                 </VStack>
               )}
