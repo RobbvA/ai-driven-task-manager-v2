@@ -1,58 +1,67 @@
 "use client";
 
-import { Flex, Heading, HStack, IconButton, Box, Text } from "@chakra-ui/react";
-import { FiSearch, FiFilter } from "react-icons/fi";
+import { Box, Heading, Text } from "@chakra-ui/react";
 
 export default function Topbar() {
   return (
-    <Flex
+    <Box
       as="header"
-      h="64px"
-      align="center"
-      justify="space-between"
-      px={6}
-      borderBottom="1px solid #d5d8e4"
-      bg="#f7f8fc" // cool white-blue
-      position="sticky"
-      top={0}
-      zIndex={10}
+      position="relative"
+      overflow="hidden"
+      bg="white"
+      borderBottom="1px solid #dde2f2"
     >
-      <Heading size="md" color="#1e2235">
-        AI Driven Task Manager
-      </Heading>
+      {/* Background image: cover + centered focus (show middle of artwork) */}
+      <Box
+        position="absolute"
+        inset="0"
+        zIndex={0}
+        bgImage="url('/BannerAITaskManager.png?v=4')"
+        bgRepeat="no-repeat"
+        bgPosition="center center" // 👈 focus on the middle
+        bgSize="cover" // 👈 keep earlier style (subtle background, no "contain" look)
+        opacity={0.18} // subtle but visible
+        filter="saturate(1.15) contrast(1.08) brightness(0.98)"
+        pointerEvents="none"
+        transform="scale(1.03)" // avoids visible edges on some screens
+      />
 
-      <HStack spacing={4}>
-        <IconButton
-          aria-label="Search tasks"
-          icon={<FiSearch />}
-          variant="ghost"
+      {/* Overlay: protect readability without washing out the artwork */}
+      <Box
+        position="absolute"
+        inset="0"
+        zIndex={1}
+        bgGradient="linear(to-b,
+          rgba(255,255,255,0.92) 0%,
+          rgba(255,255,255,0.78) 55%,
+          rgba(255,255,255,0.62) 100%
+        )"
+        pointerEvents="none"
+      />
+
+      {/* Content */}
+      <Box
+        position="relative"
+        zIndex={2}
+        maxW="1200px"
+        mx="auto"
+        px={{ base: 4, md: 6 }}
+        py={{ base: 6, md: 7 }} // 👈 slightly taller so the image center fits in the banner
+      >
+        <Heading
           size="sm"
-          color="gray.500"
-          _hover={{ bg: "#e2e6ff", color: "#1e2235" }}
-        />
+          color="#1f2335"
+          fontWeight="semibold"
+          letterSpacing="-0.01em"
+          mb={1}
+        >
+          AI Driven Task Manager
+        </Heading>
 
-        <IconButton
-          aria-label="Filter tasks"
-          icon={<FiFilter />}
-          variant="ghost"
-          size="sm"
-          color="gray.500"
-          _hover={{ bg: "#e2e6ff", color: "#1e2235" }}
-        />
-
-        <HStack spacing={2}>
-          <Box
-            w="28px"
-            h="28px"
-            borderRadius="full"
-            bg="#b5baff33"
-            border="1px solid #b5baff"
-          />
-          <Text fontSize="sm" color="#4a4e62">
-            dev.robb
-          </Text>
-        </HStack>
-      </HStack>
-    </Flex>
+        <Text fontSize="sm" color="#6b708c">
+          Intelligent task planning with clarity and focus
+        </Text>
+      </Box>
+    </Box>
   );
 }

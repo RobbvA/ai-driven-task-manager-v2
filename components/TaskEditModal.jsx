@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Box, Text, Button, Stack, Input } from "@chakra-ui/react";
+import { Box, Text, Button, Stack, Input, Dialog } from "@chakra-ui/react";
 
 const PRIORITY_OPTIONS = ["Critical", "High", "Medium", "Low"];
 
@@ -11,7 +11,6 @@ export default function TaskEditModal({ isOpen, task, onClose, onSave }) {
   const [description, setDescription] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // state vullen wanneer een nieuwe task wordt geselecteerd
   useEffect(() => {
     if (task) {
       setTitle(task.title || "");
@@ -20,7 +19,7 @@ export default function TaskEditModal({ isOpen, task, onClose, onSave }) {
     }
   }, [task]);
 
-  if (!isOpen || !task) return null;
+  if (!task) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,120 +39,110 @@ export default function TaskEditModal({ isOpen, task, onClose, onSave }) {
   };
 
   return (
-    <Box
-      position="fixed"
-      inset="0"
-      bg="rgba(15, 23, 42, 0.55)" // donkere overlay
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      zIndex={1000}
+    <Dialog.Root
+      open={!!isOpen}
+      onOpenChange={(details) => {
+        if (!details.open) onClose();
+      }}
+      size="lg"
+      placement="center"
     >
-      <Box
-        as="form"
-        onSubmit={handleSubmit}
-        bg="white"
-        borderRadius="lg"
-        p={5}
-        w="100%"
-        maxW="480px"
-        boxShadow="0 18px 45px rgba(15, 23, 42, 0.35)"
-      >
-        {/* Header */}
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={3}
+      <Dialog.Backdrop bg="rgba(15, 23, 42, 0.55)" />
+      <Dialog.Positioner>
+        <Dialog.Content
+          borderRadius="xl"
+          boxShadow="0 18px 45px rgba(15, 23, 42, 0.35)"
         >
-          <Text fontSize="lg" fontWeight="semibold" color="#1f2335">
-            Edit task
-          </Text>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            isDisabled={isSaving}
-          >
-            ✕
-          </Button>
-        </Box>
+          <Dialog.CloseTrigger />
 
-        {/* Body */}
-        <Stack spacing={3} mb={4}>
-          <Box>
-            <Text fontSize="sm" mb={1} color="#4a4e62">
-              Title
-            </Text>
-            <Input
-              size="sm"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </Box>
+          <Dialog.Header>
+            <Dialog.Title>Edit task</Dialog.Title>
+          </Dialog.Header>
 
-          <Box>
-            <Text fontSize="sm" mb={1} color="#4a4e62">
-              Priority
-            </Text>
-            <Box
-              as="select"
-              size="sm"
-              w="100%"
-              value={priority}
-              onChange={(e) => setPriority(e.target.value)}
-              borderRadius="md"
-              border="1px solid #d5d8e4"
-              px={2}
-              py={1}
-            >
-              {PRIORITY_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
+          <Dialog.Body>
+            <Box as="form" onSubmit={handleSubmit}>
+              <Stack spacing={4}>
+                <Box>
+                  <Text fontSize="sm" mb={1} color="#4a4e62">
+                    Title
+                  </Text>
+                  <Input
+                    size="md"
+                    borderRadius="lg"
+                    border="1px solid #dde2f2"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </Box>
+
+                <Box>
+                  <Text fontSize="sm" mb={1} color="#4a4e62">
+                    Priority
+                  </Text>
+                  <Box
+                    as="select"
+                    w="100%"
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    borderRadius="lg"
+                    border="1px solid #dde2f2"
+                    px={3}
+                    py={2}
+                    fontSize="sm"
+                    bg="#ffffff"
+                  >
+                    {PRIORITY_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </Box>
+                </Box>
+
+                <Box>
+                  <Text fontSize="sm" mb={1} color="#4a4e62">
+                    Description
+                  </Text>
+                  <Box
+                    as="textarea"
+                    rows={5}
+                    w="100%"
+                    borderRadius="lg"
+                    border="1px solid #dde2f2"
+                    px={3}
+                    py={2}
+                    fontSize="sm"
+                    bg="#ffffff"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </Box>
+
+                <Box display="flex" justifyContent="flex-end" gap={2} pt={2}>
+                  <Button
+                    variant="ghost"
+                    borderRadius="full"
+                    onClick={onClose}
+                    isDisabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    borderRadius="full"
+                    bg="#1f2335"
+                    color="white"
+                    _hover={{ bg: "#161a28" }}
+                    isLoading={isSaving}
+                  >
+                    Save changes
+                  </Button>
+                </Box>
+              </Stack>
             </Box>
-          </Box>
-
-          <Box>
-            <Text fontSize="sm" mb={1} color="#4a4e62">
-              Description
-            </Text>
-            <Box
-              as="textarea"
-              rows={4}
-              w="100%"
-              borderRadius="md"
-              border="1px solid #d5d8e4"
-              px={3}
-              py={2}
-              fontSize="sm"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </Box>
-        </Stack>
-
-        {/* Footer */}
-        <Box display="flex" justifyContent="flex-end" gap={2}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            isDisabled={isSaving}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            size="sm"
-            colorScheme="blue"
-            isLoading={isSaving}
-          >
-            Save changes
-          </Button>
-        </Box>
-      </Box>
-    </Box>
+          </Dialog.Body>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
   );
 }

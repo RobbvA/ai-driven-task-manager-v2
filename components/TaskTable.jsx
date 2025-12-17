@@ -7,54 +7,73 @@ import {
   HStack,
   VStack,
   Badge,
-  Button,
+  IconButton,
   Dialog,
+  Flex,
+  Tooltip,
+  Button,
 } from "@chakra-ui/react";
+import { CheckCircle, Pencil, Trash2 } from "lucide-react";
 
-// Subtle accent palette (soft, non-screamy)
 const PRIORITY_STYLES = {
   Critical: {
-    bg: "#fff1f2", // rose-50
-    color: "#9f1239", // rose-800
-    border: "#fecdd3", // rose-200
-    dot: "#e11d48", // rose-600
-    bar: "#fb7185", // rose-400
+    bg: "#fff1f2",
+    color: "#9f1239",
+    border: "#fecdd3",
+    dot: "#e11d48",
+    bar: "#fb7185",
   },
   High: {
-    bg: "#fff7ed", // orange-50
-    color: "#9a3412", // orange-800
-    border: "#fed7aa", // orange-200
-    dot: "#f97316", // orange-500
-    bar: "#fdba74", // orange-300/400-ish
+    bg: "#fff7ed",
+    color: "#9a3412",
+    border: "#fed7aa",
+    dot: "#f97316",
+    bar: "#fdba74",
   },
   Medium: {
-    bg: "#fefce8", // yellow-50
-    color: "#854d0e", // yellow-800
-    border: "#fde68a", // yellow-200
-    dot: "#eab308", // yellow-500
-    bar: "#facc15", // yellow-400/500
+    bg: "#fefce8",
+    color: "#854d0e",
+    border: "#fde68a",
+    dot: "#eab308",
+    bar: "#facc15",
   },
   Low: {
-    bg: "#f0fdf4", // green-50
-    color: "#166534", // green-800
-    border: "#bbf7d0", // green-200
-    dot: "#22c55e", // green-500
-    bar: "#86efac", // green-300/400
+    bg: "#f0fdf4",
+    color: "#166534",
+    border: "#bbf7d0",
+    dot: "#22c55e",
+    bar: "#86efac",
   },
 };
 
-// Status colors stay calm, but slightly clearer
 const STATUS_STYLES = {
   "To Do": { bg: "#eef0ff", color: "#3b3f63", border: "#d7dcff" },
   "In Progress": { bg: "#e0e7ff", color: "#2b3a7a", border: "#c7d2fe" },
   Done: { bg: "#ecfdf5", color: "#166534", border: "#bbf7d0" },
 };
 
-// Shared grid template
-const GRID_TEMPLATE = {
-  base: "minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1.8fr)",
-  md: "minmax(0, 3fr) minmax(0, 2fr) minmax(0, 1.6fr) minmax(0, 1.4fr) minmax(0, 1.8fr)",
-};
+function ActionTooltip({ label, children }) {
+  // Chakra v3 tooltip namespace API
+  return (
+    <Tooltip.Root openDelay={200} closeDelay={50}>
+      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
+      <Tooltip.Positioner>
+        <Tooltip.Content
+          fontSize="xs"
+          px={2}
+          py={1}
+          borderRadius="md"
+          bg="#1f2335"
+          color="white"
+          boxShadow="md"
+        >
+          {label}
+          <Tooltip.Arrow />
+        </Tooltip.Content>
+      </Tooltip.Positioner>
+    </Tooltip.Root>
+  );
+}
 
 export default function TaskTable({
   tasks,
@@ -66,16 +85,11 @@ export default function TaskTable({
   const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [whyTask, setWhyTask] = useState(null);
 
-  const handleRowClick = (taskId) => {
-    setExpandedTaskId((prev) => (prev === taskId ? null : taskId));
-  };
-
   const canExplain = (task) =>
     task?.prioritySource === "ai" &&
     Array.isArray(task?.priorityReasons) &&
     task.priorityReasons.length > 0;
 
-  // Only show reasons that match the chosen priority (prevents confusing mixed buckets)
   const reasonsForChosenPriority = useMemo(() => {
     if (!whyTask) return [];
     if (!Array.isArray(whyTask.priorityReasons)) return [];
@@ -87,71 +101,11 @@ export default function TaskTable({
   return (
     <Box
       bg="#ffffff"
-      border="1px solid #d5d8e4"
+      border="1px solid #e3e5f2"
       borderRadius="lg"
       overflow="hidden"
-      boxShadow="0 14px 30px rgba(15, 23, 42, 0.08)"
     >
-      {/* Header row */}
-      <Box
-        px={4}
-        py={3}
-        borderBottom="1px solid #d5d8e4"
-        bg="#f2f4ff"
-        display="grid"
-        gridTemplateColumns={GRID_TEMPLATE}
-        columnGap={6}
-        alignItems="center"
-      >
-        <Text
-          fontSize="xs"
-          textTransform="uppercase"
-          letterSpacing="0.12em"
-          color="#8589ab"
-        >
-          Task
-        </Text>
-
-        <Text
-          fontSize="xs"
-          textTransform="uppercase"
-          letterSpacing="0.12em"
-          color="#a1a4c0"
-        >
-          Progress
-        </Text>
-
-        <Text
-          fontSize="xs"
-          textTransform="uppercase"
-          letterSpacing="0.12em"
-          color="#a1a4c0"
-        >
-          Priority
-        </Text>
-
-        <Text
-          fontSize="xs"
-          textTransform="uppercase"
-          letterSpacing="0.12em"
-          color="#a1a4c0"
-        >
-          Due
-        </Text>
-
-        <Text
-          fontSize="xs"
-          textTransform="uppercase"
-          letterSpacing="0.12em"
-          color="#a1a4c0"
-          textAlign="right"
-        >
-          Actions
-        </Text>
-      </Box>
-
-      {/* Rows */}
-      <Box as="div">
+      <VStack spacing={0} align="stretch">
         {tasks.map((task, index) => {
           const pr = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.Medium;
           const st = STATUS_STYLES[task.status] || STATUS_STYLES["To Do"];
@@ -160,35 +114,21 @@ export default function TaskTable({
           const isHighlighted = highlightedTaskId === task.id;
           const isExpanded = expandedTaskId === task.id;
 
-          // Row accent: subtle left strip ties to priority
           const rowAccent = isDone ? "#22c55e" : pr.dot;
 
           return (
             <Box key={task.id}>
-              {/* main row */}
               <Box
-                px={4}
-                py={3}
-                borderBottom="1px solid #e3e5f2"
+                px={{ base: 4, md: 5 }}
+                py={4}
+                borderTop={index === 0 ? "none" : "1px solid #eef0ff"}
                 position="relative"
-                bg={
-                  isHighlighted
-                    ? "#eef7ff"
-                    : index % 2 === 0
-                    ? "#ffffff"
-                    : "#f7f8ff"
-                }
-                _hover={{ bg: isHighlighted ? "#e4f2ff" : "#eef0ff" }}
-                transition="background-color 0.15s ease-out, box-shadow 0.15s ease-out"
-                boxShadow={isHighlighted ? "0 0 0 1px #93c5fd" : "none"}
-                display="grid"
-                gridTemplateColumns={GRID_TEMPLATE}
-                columnGap={6}
-                alignItems="flex-start"
+                bg={isHighlighted ? "#eef7ff" : "#ffffff"}
+                _hover={{ bg: isHighlighted ? "#e4f2ff" : "#f6f7ff" }}
+                transition="background-color 0.15s ease-out"
                 cursor="pointer"
-                onClick={() => handleRowClick(task.id)}
+                onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
               >
-                {/* Left accent strip */}
                 <Box
                   position="absolute"
                   left="0"
@@ -196,196 +136,192 @@ export default function TaskTable({
                   bottom="0"
                   w="4px"
                   bg={rowAccent}
-                  opacity={isHighlighted ? 0.9 : 0.55}
+                  opacity={0.6}
                 />
 
-                {/* Task column */}
-                <HStack spacing={3} align="flex-start" minW={0}>
-                  {/* status dot */}
-                  <Box
-                    w="10px"
-                    h="10px"
-                    borderRadius="full"
-                    mt={1}
-                    bg={
-                      isDone
-                        ? "#22c55e"
-                        : task.status === "In Progress"
-                        ? "#6366f1"
-                        : "#f59e0b"
-                    }
-                    flexShrink={0}
-                  />
-
-                  <VStack spacing={1} align="flex-start" minW={0}>
+                <Flex justify="space-between" align="flex-start" gap={4}>
+                  <Box flex="1" minW={0}>
                     <Text
                       fontSize="sm"
+                      fontWeight="700"
+                      color="#1f2335"
                       as={isDone ? "s" : undefined}
                       opacity={isDone ? 0.6 : 1}
-                      color="#1e2235"
                       noOfLines={1}
                     >
                       {task.title}
                     </Text>
 
-                    {/* Status pill (now with border for clarity) */}
-                    <Box
-                      px={2}
-                      py={0.5}
-                      borderRadius="full"
-                      fontSize="xs"
-                      bg={st.bg}
-                      color={st.color}
-                      border="1px solid"
-                      borderColor={st.border}
-                    >
-                      {task.status}
+                    <HStack spacing={2} mt={1} flexWrap="wrap">
+                      <Box
+                        px={2}
+                        py={0.5}
+                        borderRadius="full"
+                        fontSize="xs"
+                        bg={st.bg}
+                        color={st.color}
+                        border="1px solid"
+                        borderColor={st.border}
+                      >
+                        {task.status}
+                      </Box>
+
+                      <Text fontSize="xs" color="#6b708c">
+                        Progress{" "}
+                        <Box as="span" fontWeight="700" color="#1f2335">
+                          {typeof task.progress === "number"
+                            ? `${task.progress}%`
+                            : "—"}
+                        </Box>
+                      </Text>
+
+                      <Text fontSize="xs" color="#6b708c">
+                        Due{" "}
+                        <Box as="span" fontWeight="700" color="#1f2335">
+                          {task.dueDate || "—"}
+                        </Box>
+                      </Text>
+                    </HStack>
+
+                    <Box mt={2} maxW="520px">
+                      <Box
+                        h="6px"
+                        bg="#e6e8f5"
+                        borderRadius="full"
+                        overflow="hidden"
+                      >
+                        <Box
+                          h="100%"
+                          w={`${task.progress ?? 0}%`}
+                          bg={isDone ? "#22c55e" : pr.bar}
+                          borderRadius="full"
+                          transition="width 0.2s ease-out"
+                        />
+                      </Box>
                     </Box>
 
-                    {task.description && (
-                      <Text fontSize="xs" color="#a1a4c0" mt={0.5}>
-                        {isExpanded
-                          ? "Click to hide details"
-                          : "Click to view full description"}
-                      </Text>
-                    )}
-                  </VStack>
-                </HStack>
-
-                {/* Progress column */}
-                <Box mt={1} minW={0}>
-                  <Box
-                    w="100%"
-                    h="7px"
-                    bg="#e2e4f0"
-                    borderRadius="full"
-                    overflow="hidden"
-                  >
-                    <Box
-                      h="100%"
-                      w={`${task.progress ?? 0}%`}
-                      bg={isDone ? "#22c55e" : pr.bar}
-                      borderRadius="full"
-                      transition="width 0.2s ease-out"
-                    />
-                  </Box>
-                </Box>
-
-                {/* Priority column */}
-                <Box mt={1}>
-                  <HStack spacing={2}>
-                    <Badge
-                      px={3}
-                      py={1}
-                      borderRadius="md"
-                      bg={pr.bg}
-                      color={pr.color}
-                      border="1px solid"
-                      borderColor={pr.border}
-                      fontSize="xs"
-                      textTransform="none"
-                    >
-                      {task.priority}
-                    </Badge>
-
-                    {/* compact "?" icon — consistent with next task */}
-                    {canExplain(task) && (
+                    {isExpanded && task.description && (
                       <Box
-                        as="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setWhyTask(task);
-                        }}
-                        display="inline-flex"
-                        alignItems="center"
-                        justifyContent="center"
-                        w="22px"
-                        h="22px"
-                        borderRadius="full"
-                        border="1px solid #dde2f2"
-                        bg="#ffffff"
-                        color="#4a4e62"
-                        fontSize="xs"
-                        fontWeight="bold"
-                        cursor="pointer"
-                        _hover={{ bg: "#eef0ff", color: "#374074" }}
-                        _active={{ transform: "scale(0.95)" }}
-                        title="Why this priority?"
-                        aria-label="Why this priority?"
+                        mt={3}
+                        p={3}
+                        bg="#f7f8ff"
+                        border="1px solid #e3e5f2"
+                        borderRadius="md"
                       >
-                        ?
+                        <Text fontSize="xs" color="#9aa0c3" mb={1}>
+                          Description
+                        </Text>
+                        <Text
+                          fontSize="sm"
+                          color="#4a4e62"
+                          whiteSpace="pre-wrap"
+                        >
+                          {task.description}
+                        </Text>
                       </Box>
                     )}
-                  </HStack>
-                </Box>
+                  </Box>
 
-                {/* Due column */}
-                <Box mt={1}>
-                  <Text opacity={0.9} minW="80px" fontSize="sm" color="#4a4e62">
-                    {task.dueDate || "—"}
-                  </Text>
-                </Box>
+                  <VStack spacing={2} align="flex-end" flexShrink={0}>
+                    <HStack spacing={2}>
+                      <Badge
+                        px={2.5}
+                        py={1}
+                        borderRadius="md"
+                        bg={pr.bg}
+                        color={pr.color}
+                        border="1px solid"
+                        borderColor={pr.border}
+                        fontSize="xs"
+                        textTransform="none"
+                      >
+                        {task.priority}
+                      </Badge>
 
-                {/* Actions column */}
-                <HStack spacing={2} mt={1} justify="flex-end" align="center">
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    color="#4a4e62"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleStatus(task.id);
-                    }}
-                  >
-                    Toggle
-                  </Button>
+                      {canExplain(task) && (
+                        <Box
+                          as="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWhyTask(task);
+                          }}
+                          display="inline-flex"
+                          alignItems="center"
+                          justifyContent="center"
+                          w="24px"
+                          h="24px"
+                          borderRadius="full"
+                          border="1px solid #dde2f2"
+                          bg="#ffffff"
+                          color="#4a4e62"
+                          fontSize="xs"
+                          fontWeight="bold"
+                          cursor="pointer"
+                          _hover={{ bg: "#eef0ff", color: "#374074" }}
+                          _active={{ transform: "scale(0.96)" }}
+                          title="Why this priority?"
+                          aria-label="Why this priority?"
+                        >
+                          ?
+                        </Box>
+                      )}
+                    </HStack>
 
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    color="#4a4e62"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onEditTask) onEditTask(task);
-                    }}
-                  >
-                    Edit
-                  </Button>
+                    {/* Actions: icon-only, ALWAYS visible */}
+                    <HStack spacing={1}>
+                      <ActionTooltip label="Toggle task">
+                        <IconButton
+                          size="xs"
+                          variant="ghost"
+                          aria-label="Toggle task"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleStatus(task.id);
+                          }}
+                          _hover={{ bg: "#eef0ff" }}
+                        >
+                          <CheckCircle size={16} />
+                        </IconButton>
+                      </ActionTooltip>
 
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    color="#b3394a"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteTask(task.id);
-                    }}
-                  >
-                    Delete
-                  </Button>
-                </HStack>
+                      <ActionTooltip label="Edit task">
+                        <IconButton
+                          size="xs"
+                          variant="ghost"
+                          aria-label="Edit task"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditTask?.(task);
+                          }}
+                          _hover={{ bg: "#eef0ff" }}
+                        >
+                          <Pencil size={16} />
+                        </IconButton>
+                      </ActionTooltip>
+
+                      <ActionTooltip label="Delete task">
+                        <IconButton
+                          size="xs"
+                          variant="ghost"
+                          aria-label="Delete task"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteTask(task.id);
+                          }}
+                          color="#b3394a"
+                          _hover={{ bg: "#fff1f2" }}
+                        >
+                          <Trash2 size={16} />
+                        </IconButton>
+                      </ActionTooltip>
+                    </HStack>
+                  </VStack>
+                </Flex>
               </Box>
-
-              {/* detail block */}
-              {isExpanded && task.description && (
-                <Box
-                  px={4}
-                  pb={3}
-                  bg="#f5f6ff"
-                  borderBottom="1px solid #e3e5f2"
-                >
-                  <Text fontSize="xs" color="#9aa0c3" mb={1}>
-                    Description
-                  </Text>
-                  <Text fontSize="sm" color="#4a4e62" whiteSpace="pre-wrap">
-                    {task.description}
-                  </Text>
-                </Box>
-              )}
             </Box>
           );
         })}
-      </Box>
+      </VStack>
 
       {/* Priority explainability Dialog (Chakra v3) */}
       <Dialog.Root

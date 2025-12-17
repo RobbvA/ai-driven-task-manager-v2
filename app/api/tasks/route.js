@@ -1,6 +1,22 @@
 import { NextResponse } from "next/server";
-import prisma from "../../../lib/prisma"; // pas pad aan als jouw prisma.js elders zit
-import { suggestPriorityDetailed } from "../../../lib/aiPriorityEngine"; // pas pad aan indien nodig
+import prisma from "../../../lib/prisma";
+import { suggestPriorityDetailed } from "../../../lib/aiPriorityEngine";
+
+export async function GET() {
+  try {
+    const tasks = await prisma.task.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(tasks, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching tasks:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch tasks" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request) {
   try {
@@ -13,7 +29,7 @@ export async function POST(request) {
       priority,
       progress,
       dueDate,
-      prioritySource, // NEW: "ai" | "manual"
+      prioritySource, // "ai" | "manual"
     } = body;
 
     if (!title || typeof title !== "string") {
@@ -31,7 +47,7 @@ export async function POST(request) {
       const detailed = suggestPriorityDetailed(title);
       finalPriority = detailed.priority;
       priorityScore = detailed.score;
-      priorityReasons = detailed.reasons; // Json
+      priorityReasons = detailed.reasons; // JSON
       priorityModelVersion = detailed.modelVersion;
     }
 

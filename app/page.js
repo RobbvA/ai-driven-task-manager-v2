@@ -1,15 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import {
-  Box,
-  Heading,
-  Text,
-  VStack,
-  Flex,
-  Stack,
-  Button,
-} from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Stack, Button } from "@chakra-ui/react";
+
 import Topbar from "../components/Topbar";
 import TaskTable from "../components/TaskTable";
 import AddTaskBar from "../components/AddTaskBar";
@@ -44,8 +37,6 @@ export default function HomePage() {
   // AI state
   const [suggestedTaskId, setSuggestedTaskId] = useState(null);
   const [aiState, setAiState] = useState("idle");
-
-  // NEW: explainability for AI Next Task
   const [nextExplainability, setNextExplainability] = useState(null);
 
   // Tabs
@@ -74,7 +65,7 @@ export default function HomePage() {
   }, []);
 
   /**
-   * Add task (V2.3)
+   * Add task (with dueDate)
    * - If prioritySource === "ai": server computes priority + explainability and persists it
    * - If prioritySource === "manual": server stores provided priority
    */
@@ -82,9 +73,10 @@ export default function HomePage() {
     title,
     priorityFromUI,
     descriptionFromUI,
-    prioritySource
+    prioritySource,
+    dueDateFromUI
   ) => {
-    if (!title.trim()) return;
+    if (!title?.trim()) return;
 
     const source = prioritySource === "ai" ? "ai" : "manual";
 
@@ -98,7 +90,9 @@ export default function HomePage() {
       prioritySource: source,
 
       progress: 0,
-      dueDate: null,
+
+      // due date from UI (YYYY-MM-DD) or null
+      dueDate: dueDateFromUI || null,
     };
 
     try {
@@ -110,7 +104,6 @@ export default function HomePage() {
 
       const created = await res.json();
 
-      // Basic error guard (optional but safe)
       if (!res.ok) {
         console.error("Failed to create task:", created);
         return;
@@ -123,19 +116,33 @@ export default function HomePage() {
     }
   };
 
-  // Toggle task
+  // Toggle task status (cyclic, UX-correct)
   const handleToggleStatus = async (taskId) => {
     const target = tasks.find((t) => t.id === taskId);
     if (!target) return;
 
-    const newStatus = target.status === "Done" ? "To Do" : "Done";
-    const newProgress = newStatus === "Done" ? 100 : 0;
+    let newStatus = target.status;
+    let newProgress = target.progress ?? 0;
+
+    if (target.status === "To Do") {
+      newStatus = "In Progress";
+      newProgress = newProgress > 0 ? newProgress : 25;
+    } else if (target.status === "In Progress") {
+      newStatus = "Done";
+      newProgress = 100;
+    } else if (target.status === "Done") {
+      newStatus = "To Do";
+      newProgress = 0;
+    }
 
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, progress: newProgress }),
+        body: JSON.stringify({
+          status: newStatus,
+          progress: newProgress,
+        }),
       });
 
       const updated = await res.json();
@@ -152,7 +159,7 @@ export default function HomePage() {
     }
   };
 
-  // Delete task
+  // Delete task (optimistic)
   const handleDeleteTask = async (taskId) => {
     const oldTasks = tasks;
     setTasks(tasks.filter((t) => t.id !== taskId));
@@ -166,7 +173,7 @@ export default function HomePage() {
     }
   };
 
-  // Update task (title, priority, description, etc.)
+  // Update task
   const handleUpdateTask = async (taskId, updates) => {
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
@@ -193,7 +200,7 @@ export default function HomePage() {
     setEditingTask(task);
   };
 
-  // 🧠 Filtered → Sorted tasks
+  // Filtered tasks
   const filteredTasks = useMemo(
     () =>
       tasks.filter((t) => {
@@ -205,6 +212,7 @@ export default function HomePage() {
     [tasks, filter, priorityFilter]
   );
 
+  // Sorted tasks
   const sortedTasks = useMemo(() => {
     const list = [...filteredTasks];
     if (sortBy === "none") return list;
@@ -215,7 +223,7 @@ export default function HomePage() {
       if (sortBy === "priority") {
         val = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
       } else if (sortBy === "progress") {
-        val = a.progress - b.progress;
+        val = (a.progress ?? 0) - (b.progress ?? 0);
       } else if (sortBy === "dueDate") {
         val = (a.dueDate || "").localeCompare(b.dueDate || "");
       }
@@ -224,7 +232,7 @@ export default function HomePage() {
     });
   }, [filteredTasks, sortBy, sortDirection]);
 
-  // ⭐ AI Next Task
+  // AI Next Task
   const handleSuggestNextTask = () => {
     if (!tasks.length) {
       setSuggestedTaskId(null);
@@ -258,16 +266,6 @@ export default function HomePage() {
       <RotateHint />
 
       <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
-        {/* Header */}
-        <VStack align="flex-start" spacing={1} mb={4}>
-          <Heading size="lg" color="#1f2335">
-            Today&apos;s tasks
-          </Heading>
-          <Text fontSize="sm" color="#6b708c">
-            Plan, focus, and let AI highlight what matters most.
-          </Text>
-        </VStack>
-
         {/* Tabs */}
         <Box mb={6}>
           <Flex
@@ -334,9 +332,6 @@ export default function HomePage() {
             >
               <Stack direction={{ base: "column", md: "row" }} spacing={4}>
                 <Box flex="1">
-                  <Text fontSize="xs" color="#b0b4d0" mb={1}>
-                    Status
-                  </Text>
                   <TaskFilters
                     currentFilter={filter}
                     onChangeFilter={setFilter}
@@ -344,9 +339,6 @@ export default function HomePage() {
                 </Box>
 
                 <Box flex="1">
-                  <Text fontSize="xs" color="#b0b4d0" mb={1}>
-                    Priority
-                  </Text>
                   <TaskPriorityFilters
                     currentPriorityFilter={priorityFilter}
                     onChangePriorityFilter={setPriorityFilter}
@@ -354,9 +346,6 @@ export default function HomePage() {
                 </Box>
 
                 <Box flex="1">
-                  <Text fontSize="xs" color="#b0b4d0" mb={1}>
-                    Sort
-                  </Text>
                   <TaskSortBar
                     sortBy={sortBy}
                     sortDirection={sortDirection}
@@ -371,7 +360,7 @@ export default function HomePage() {
               </Stack>
             </Box>
 
-            {/* AI Next Task – collapsible card */}
+            {/* AI Next Task */}
             <Box
               bg="white"
               borderRadius="lg"
@@ -379,7 +368,6 @@ export default function HomePage() {
               border="1px solid #dde2f2"
               boxShadow="sm"
             >
-              {/* Header: titel + galaxy toggle button */}
               <Flex justify="space-between" align="center">
                 <Heading size="sm" color="#1f2335">
                   AI Next Task
@@ -389,9 +377,7 @@ export default function HomePage() {
                   onClick={() => {
                     setIsAiCardOpen((prev) => {
                       const next = !prev;
-                      if (!prev) {
-                        handleSuggestNextTask();
-                      }
+                      if (!prev) handleSuggestNextTask();
                       return next;
                     });
                   }}
@@ -399,42 +385,16 @@ export default function HomePage() {
                   height="2.3rem"
                   px={6}
                   borderRadius="full"
-                  bgGradient="linear(to-r, #4c6fff, #a855f7, #ec4899, #22d3ee)"
-                  bgSize="200% 200%"
+                  bg="#1f2335"
                   color="white"
-                  boxShadow="0 0 24px rgba(88, 101, 242, 0.75)"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  gap={2}
                   fontSize="xs"
-                  _hover={{
-                    boxShadow: "0 0 32px rgba(88, 101, 242, 0.95)",
-                    transform: "translateY(-1px)",
-                  }}
-                  _active={{
-                    transform: "translateY(0px) scale(0.98)",
-                  }}
+                  _hover={{ transform: "translateY(-1px)" }}
+                  _active={{ transform: "scale(0.98)" }}
                 >
-                  <Box
-                    w="18px"
-                    h="18px"
-                    borderRadius="full"
-                    bg="rgba(255,255,255,0.2)"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    fontWeight="bold"
-                    fontSize="sm"
-                  >
-                    {isAiCardOpen ? "–" : "+"}
-                  </Box>
-
-                  <Text fontSize="xs">AI Next Task</Text>
+                  {isAiCardOpen ? "Hide" : "Show"}
                 </Button>
               </Flex>
 
-              {/* Collapsible content */}
               {isAiCardOpen && (
                 <Box
                   mt={3}
@@ -442,13 +402,6 @@ export default function HomePage() {
                   bg="#f5f6ff"
                   border="1px solid #dde2f2"
                   p={3}
-                  animation="fadeIn 0.25s ease"
-                  sx={{
-                    "@keyframes fadeIn": {
-                      from: { opacity: 0, transform: "translateY(-4px)" },
-                      to: { opacity: 1, transform: "translateY(0)" },
-                    },
-                  }}
                 >
                   <NextTaskBanner
                     aiState={aiState}
@@ -468,9 +421,21 @@ export default function HomePage() {
               boxShadow="sm"
               border="1px solid #dde2f2"
             >
-              <Heading size="sm" mb={2}>
+              <Heading
+                size="md"
+                mb={3}
+                color="#1f2335"
+                fontWeight="semibold"
+                letterSpacing="-0.01em"
+              >
                 Task list
               </Heading>
+
+              <Box
+                h="1px"
+                bg="linear-gradient(to right, #dde2f2, transparent)"
+                mb={4}
+              />
 
               {isLoading ? (
                 <Text color="#6b708c">Loading tasks…</Text>

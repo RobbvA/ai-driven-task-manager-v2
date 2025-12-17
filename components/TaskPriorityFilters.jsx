@@ -1,6 +1,6 @@
 "use client";
 
-import { HStack, Button, Box } from "@chakra-ui/react";
+import { Box, Text } from "@chakra-ui/react";
 
 const PRIORITY_FILTERS = ["All", "Critical", "High", "Medium", "Low"];
 
@@ -9,28 +9,35 @@ export default function TaskPriorityFilters({
   onChangePriorityFilter,
 }) {
   return (
-    <Box mb={3}>
-      <HStack spacing={2}>
-        {PRIORITY_FILTERS.map((priority) => {
-          const isActive = currentPriorityFilter === priority;
+    <Box>
+      <Text fontSize="xs" color="#6b708c" mb={1}>
+        Priority
+      </Text>
 
-          return (
-            <Button
-              key={priority}
-              size="xs"
-              variant={isActive ? "solid" : "ghost"}
-              bg={isActive ? "#b5baff" : "transparent"}
-              color={isActive ? "#1f2335" : "#4a4e62"}
-              _hover={{
-                bg: isActive ? "#a3a8f2" : "rgba(31, 35, 53, 0.06)",
-              }}
-              onClick={() => onChangePriorityFilter(priority)}
-            >
-              {priority}
-            </Button>
-          );
-        })}
-      </HStack>
+      <Box
+        as="select"
+        value={currentPriorityFilter}
+        onChange={(e) => onChangePriorityFilter(e.target.value)}
+        w="100%"
+        h="36px"
+        px={3}
+        borderRadius="md"
+        border="1px solid #dde2f2"
+        bg="#ffffff"
+        color="#1f2335"
+        fontSize="sm"
+        outline="none"
+        _focus={{
+          borderColor: "#b5baff",
+          boxShadow: "0 0 0 3px rgba(181, 186, 255, 0.35)",
+        }}
+      >
+        {PRIORITY_FILTERS.map((priority) => (
+          <option key={priority} value={priority}>
+            {priority}
+          </option>
+        ))}
+      </Box>
     </Box>
   );
 }

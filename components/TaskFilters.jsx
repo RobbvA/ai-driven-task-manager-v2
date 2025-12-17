@@ -1,33 +1,40 @@
 "use client";
 
-import { HStack, Button, Box } from "@chakra-ui/react";
+import { Box, Text } from "@chakra-ui/react";
 
 const FILTERS = ["All", "To Do", "In Progress", "Done"];
 
 export default function TaskFilters({ currentFilter, onChangeFilter }) {
   return (
-    <Box mb={3}>
-      <HStack spacing={2}>
-        {FILTERS.map((filter) => {
-          const isActive = currentFilter === filter;
+    <Box>
+      <Text fontSize="xs" color="#6b708c" mb={1}>
+        Status
+      </Text>
 
-          return (
-            <Button
-              key={filter}
-              size="xs"
-              variant={isActive ? "solid" : "ghost"}
-              bg={isActive ? "#1f2335" : "transparent"}
-              color={isActive ? "#ffffff" : "#4a4e62"}
-              _hover={{
-                bg: isActive ? "#1b2033" : "rgba(31, 35, 53, 0.06)",
-              }}
-              onClick={() => onChangeFilter(filter)}
-            >
-              {filter}
-            </Button>
-          );
-        })}
-      </HStack>
+      <Box
+        as="select"
+        value={currentFilter}
+        onChange={(e) => onChangeFilter(e.target.value)}
+        w="100%"
+        h="36px"
+        px={3}
+        borderRadius="md"
+        border="1px solid #dde2f2"
+        bg="#ffffff"
+        color="#1f2335"
+        fontSize="sm"
+        outline="none"
+        _focus={{
+          borderColor: "#b5baff",
+          boxShadow: "0 0 0 3px rgba(181, 186, 255, 0.35)",
+        }}
+      >
+        {FILTERS.map((filter) => (
+          <option key={filter} value={filter}>
+            {filter}
+          </option>
+        ))}
+      </Box>
     </Box>
   );
 }

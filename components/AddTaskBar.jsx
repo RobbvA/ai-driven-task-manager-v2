@@ -8,6 +8,7 @@ export default function AddTaskBar({ onAddTask }) {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState("auto"); // "auto" | "Critical" | "High" | "Medium" | "Low"
   const [description, setDescription] = useState("");
+  const [dueDate, setDueDate] = useState(""); // YYYY-MM-DD
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -15,16 +16,21 @@ export default function AddTaskBar({ onAddTask }) {
     const trimmed = title.trim();
     if (!trimmed) return;
 
-    // Map UI selection -> source + priority
     const prioritySource = priority === "auto" ? "ai" : "manual";
     const selectedPriority = priority === "auto" ? "Medium" : priority;
 
-    // Parent should POST: { title, description, prioritySource, priority: selectedPriority, ... }
-    onAddTask(trimmed, selectedPriority, description, prioritySource);
+    onAddTask(
+      trimmed,
+      selectedPriority,
+      description,
+      prioritySource,
+      dueDate || null
+    );
 
     setTitle("");
     setPriority("auto");
     setDescription("");
+    setDueDate("");
   };
 
   const handleEnhance = () => {
@@ -37,7 +43,7 @@ export default function AddTaskBar({ onAddTask }) {
     <Box mb={4}>
       <form onSubmit={handleSubmit}>
         <VStack align="stretch" spacing={2}>
-          <HStack spacing={3} align="center">
+          <HStack spacing={3} align="center" flexWrap="wrap">
             <Input
               size="sm"
               bg="#ffffff"
@@ -64,6 +70,16 @@ export default function AddTaskBar({ onAddTask }) {
               <option value="Medium">Medium</option>
               <option value="Low">Low</option>
             </Box>
+
+            {/* NEW: due date */}
+            <Input
+              size="sm"
+              bg="#ffffff"
+              type="date"
+              w="160px"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
 
             <Button type="submit" size="sm">
               Add

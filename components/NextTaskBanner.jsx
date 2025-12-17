@@ -15,7 +15,7 @@ export default function NextTaskBanner({
   aiState,
   suggestedTask,
   onSuggestNext,
-  nextExplainability, // { score, reasons, modelVersion, summary }
+  nextExplainability,
 }) {
   const [isWhyOpen, setIsWhyOpen] = useState(false);
 
@@ -28,20 +28,15 @@ export default function NextTaskBanner({
   const reasons = useMemo(() => {
     if (!nextExplainability || !Array.isArray(nextExplainability.reasons))
       return [];
-    // Highest impact first
     return [...nextExplainability.reasons].sort(
       (a, b) => Math.abs(b.weight ?? 0) - Math.abs(a.weight ?? 0)
     );
   }, [nextExplainability]);
 
   const canExplain = hasTask && reasons.length > 0;
+  const topReasons = useMemo(() => reasons.slice(0, 3), [reasons]);
 
-  const topReasons = useMemo(() => reasons.slice(0, 3), [reasons]); // 3 chips reads nicer
-
-  // Prevent dialog staying open if explainability disappears after a re-render
-  if (isWhyOpen && !canExplain) {
-    setIsWhyOpen(false);
-  }
+  if (isWhyOpen && !canExplain) setIsWhyOpen(false);
 
   if (aiState === "no-tasks") {
     return (
@@ -49,7 +44,7 @@ export default function NextTaskBanner({
         <Text fontSize="sm" color="#6b708c">
           No tasks yet. Add a task first, then I can suggest what to do next.
         </Text>
-        <Button size="sm" onClick={onSuggestNext}>
+        <Button size="sm" onClick={onSuggestNext} borderRadius="full">
           Try again
         </Button>
       </VStack>
@@ -60,9 +55,9 @@ export default function NextTaskBanner({
     return (
       <VStack spacing={2} align="flex-start" w="100%">
         <Text fontSize="sm" color="#6b708c">
-          AI couldn’t find a next task at the moment.
+          AI couldn’t find a strong next task right now.
         </Text>
-        <Button size="sm" onClick={onSuggestNext}>
+        <Button size="sm" onClick={onSuggestNext} borderRadius="full">
           Re-run suggestion
         </Button>
       </VStack>
@@ -85,25 +80,19 @@ export default function NextTaskBanner({
             Suggested
           </Badge>
 
-          <Text fontSize="sm" color="#1f2335" fontWeight="600" noOfLines={1}>
+          <Text fontSize="md" color="#1f2335" fontWeight="700" noOfLines={1}>
             {suggestedTask.title}
           </Text>
         </HStack>
 
         <HStack spacing={2}>
           {typeof nextExplainability?.score === "number" && (
-            <Badge
-              px={2}
-              py={1}
-              borderRadius="md"
-              bg="#f2f4ff"
-              color="#374074"
-              fontSize="xs"
-              textTransform="none"
-              whiteSpace="nowrap"
-            >
-              Score {nextExplainability.score}/100
-            </Badge>
+            <Text fontSize="xs" color="#6b708c" whiteSpace="nowrap">
+              Score{" "}
+              <Box as="span" fontWeight="700" color="#1f2335">
+                {nextExplainability.score}/100
+              </Box>
+            </Text>
           )}
 
           {canExplain && (
@@ -113,8 +102,8 @@ export default function NextTaskBanner({
               display="inline-flex"
               alignItems="center"
               justifyContent="center"
-              w="22px"
-              h="22px"
+              w="24px"
+              h="24px"
               borderRadius="full"
               border="1px solid #dde2f2"
               bg="#ffffff"
@@ -123,7 +112,7 @@ export default function NextTaskBanner({
               fontWeight="bold"
               cursor="pointer"
               _hover={{ bg: "#eef0ff", color: "#374074" }}
-              _active={{ transform: "scale(0.95)" }}
+              _active={{ transform: "scale(0.96)" }}
               title="Why this task?"
               aria-label="Why this task?"
             >
@@ -133,13 +122,13 @@ export default function NextTaskBanner({
         </HStack>
       </HStack>
 
-      <Text fontSize="xs" color="#6b708c">
-        Priority:{" "}
-        <Box as="span" fontWeight="600" color="#1f2335">
+      <Text fontSize="sm" color="#6b708c">
+        Priority{" "}
+        <Box as="span" fontWeight="700" color="#1f2335">
           {suggestedTask.priority || "—"}
         </Box>{" "}
-        • Progress:{" "}
-        <Box as="span" fontWeight="600" color="#1f2335">
+        • Progress{" "}
+        <Box as="span" fontWeight="700" color="#1f2335">
           {typeof suggestedTask.progress === "number"
             ? `${suggestedTask.progress}%`
             : "—"}
@@ -147,15 +136,14 @@ export default function NextTaskBanner({
         {suggestedTask.dueDate ? (
           <>
             {" "}
-            • Due:{" "}
-            <Box as="span" fontWeight="600" color="#1f2335">
+            • Due{" "}
+            <Box as="span" fontWeight="700" color="#1f2335">
               {suggestedTask.dueDate}
             </Box>
           </>
         ) : null}
       </Text>
 
-      {/* “Signal chips” preview (cleaner than bullets) */}
       {topReasons.length > 0 && (
         <HStack spacing={2} flexWrap="wrap">
           {topReasons.map((r, idx) => (
@@ -177,12 +165,11 @@ export default function NextTaskBanner({
       )}
 
       <HStack spacing={2}>
-        <Button size="sm" onClick={onSuggestNext}>
+        <Button size="sm" borderRadius="full" onClick={onSuggestNext}>
           Re-run
         </Button>
       </HStack>
 
-      {/* Chakra v3 Dialog */}
       <Dialog.Root
         open={isWhyOpen}
         onOpenChange={(details) => {
