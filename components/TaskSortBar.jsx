@@ -1,7 +1,6 @@
 "use client";
 
-import { Box, Text, HStack, IconButton } from "@chakra-ui/react";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { HStack, Button, Box, Text, IconButton } from "@chakra-ui/react";
 
 const SORT_OPTIONS = [
   { value: "none", label: "No sort" },
@@ -16,60 +15,76 @@ export default function TaskSortBar({
   onChangeSortBy,
   onToggleDirection,
 }) {
-  const isSorting = sortBy !== "none";
+  const currentLabel =
+    SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label || "No sort";
+
+  const arrow = sortDirection === "asc" ? "↑" : "↓";
 
   return (
     <Box>
-      <Text fontSize="xs" color="#6b708c" mb={1}>
-        Sort
-      </Text>
+      <HStack spacing={3} align="center" flexWrap="wrap">
+        <Text fontSize="xs" color="muted">
+          Sort
+        </Text>
 
-      <HStack spacing={2} align="center">
-        <Box
-          as="select"
-          value={sortBy}
-          onChange={(e) => onChangeSortBy(e.target.value)}
-          w="100%"
-          h="36px"
-          px={3}
-          borderRadius="md"
-          border="1px solid #dde2f2"
-          bg="#ffffff"
-          color="#1f2335"
-          fontSize="sm"
-          outline="none"
-          _focus={{
-            borderColor: "#b5baff",
-            boxShadow: "0 0 0 3px rgba(181, 186, 255, 0.35)",
-          }}
-        >
-          {SORT_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Box>
+        <HStack spacing={2} flexWrap="wrap">
+          {SORT_OPTIONS.map((opt) => {
+            const isActive = sortBy === opt.value;
 
-        {/* Direction toggle only when sorting is active */}
-        <IconButton
-          aria-label="Toggle sort direction"
-          size="sm"
-          variant="ghost"
-          onClick={onToggleDirection}
-          isDisabled={!isSorting}
-          _hover={{ bg: isSorting ? "#eef0ff" : "transparent" }}
-        >
-          {sortDirection === "asc" ? (
-            <ArrowUp size={16} />
-          ) : (
-            <ArrowDown size={16} />
-          )}
-        </IconButton>
+            return (
+              <Button
+                key={opt.value}
+                size="xs"
+                borderRadius="full"
+                variant="solid"
+                bg={isActive ? "brand.500" : "brand.50"}
+                color={isActive ? "white" : "text"}
+                border="1px solid"
+                borderColor={isActive ? "brand.500" : "border"}
+                _hover={{
+                  bg: isActive ? "brand.600" : "brand.100",
+                }}
+                _active={{
+                  transform: "scale(0.98)",
+                }}
+                _focusVisible={{
+                  boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
+                }}
+                onClick={() => onChangeSortBy(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            );
+          })}
+        </HStack>
+
+        {sortBy !== "none" && (
+          <IconButton
+            aria-label="Toggle sort direction"
+            size="xs"
+            variant="solid"
+            borderRadius="full"
+            bg="brand.50"
+            color="text"
+            border="1px solid"
+            borderColor="border"
+            _hover={{ bg: "brand.100" }}
+            _active={{ transform: "scale(0.98)" }}
+            _focusVisible={{
+              boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
+            }}
+            onClick={onToggleDirection}
+          >
+            {arrow}
+          </IconButton>
+        )}
+
+        <Text fontSize="xs" color="muted">
+          {sortBy === "none"
+            ? "No sorting"
+            : `${currentLabel} (${sortDirection})`}
+        </Text>
       </HStack>
-
-      <Text fontSize="xs" color="#9aa0c3" mt={1}>
-        {sortBy === "none" ? "No sorting applied" : `Sorting: ${sortDirection}`}
-      </Text>
     </Box>
   );
 }

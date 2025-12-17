@@ -1,3 +1,4 @@
+//components/TaskTable.jsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -10,7 +11,6 @@ import {
   IconButton,
   Dialog,
   Flex,
-  Tooltip,
   Button,
 } from "@chakra-ui/react";
 import { CheckCircle, Pencil, Trash2 } from "lucide-react";
@@ -51,29 +51,6 @@ const STATUS_STYLES = {
   "In Progress": { bg: "#e0e7ff", color: "#2b3a7a", border: "#c7d2fe" },
   Done: { bg: "#ecfdf5", color: "#166534", border: "#bbf7d0" },
 };
-
-function ActionTooltip({ label, children }) {
-  // Chakra v3 tooltip namespace API
-  return (
-    <Tooltip.Root openDelay={200} closeDelay={50}>
-      <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
-      <Tooltip.Positioner>
-        <Tooltip.Content
-          fontSize="xs"
-          px={2}
-          py={1}
-          borderRadius="md"
-          bg="#1f2335"
-          color="white"
-          boxShadow="md"
-        >
-          {label}
-          <Tooltip.Arrow />
-        </Tooltip.Content>
-      </Tooltip.Positioner>
-    </Tooltip.Root>
-  );
-}
 
 export default function TaskTable({
   tasks,
@@ -267,53 +244,50 @@ export default function TaskTable({
                       )}
                     </HStack>
 
-                    {/* Actions: icon-only, ALWAYS visible */}
+                    {/* Actions: icon-only, ALWAYS visible (no Tooltip dependency) */}
                     <HStack spacing={1}>
-                      <ActionTooltip label="Toggle task">
-                        <IconButton
-                          size="xs"
-                          variant="ghost"
-                          aria-label="Toggle task"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleStatus(task.id);
-                          }}
-                          _hover={{ bg: "#eef0ff" }}
-                        >
-                          <CheckCircle size={16} />
-                        </IconButton>
-                      </ActionTooltip>
+                      <IconButton
+                        size="xs"
+                        variant="ghost"
+                        aria-label="Toggle task"
+                        title="Toggle task"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleStatus(task.id);
+                        }}
+                        _hover={{ bg: "#eef0ff" }}
+                      >
+                        <CheckCircle size={16} />
+                      </IconButton>
 
-                      <ActionTooltip label="Edit task">
-                        <IconButton
-                          size="xs"
-                          variant="ghost"
-                          aria-label="Edit task"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditTask?.(task);
-                          }}
-                          _hover={{ bg: "#eef0ff" }}
-                        >
-                          <Pencil size={16} />
-                        </IconButton>
-                      </ActionTooltip>
+                      <IconButton
+                        size="xs"
+                        variant="ghost"
+                        aria-label="Edit task"
+                        title="Edit task"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditTask?.(task);
+                        }}
+                        _hover={{ bg: "#eef0ff" }}
+                      >
+                        <Pencil size={16} />
+                      </IconButton>
 
-                      <ActionTooltip label="Delete task">
-                        <IconButton
-                          size="xs"
-                          variant="ghost"
-                          aria-label="Delete task"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteTask(task.id);
-                          }}
-                          color="#b3394a"
-                          _hover={{ bg: "#fff1f2" }}
-                        >
-                          <Trash2 size={16} />
-                        </IconButton>
-                      </ActionTooltip>
+                      <IconButton
+                        size="xs"
+                        variant="ghost"
+                        aria-label="Delete task"
+                        title="Delete task"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteTask(task.id);
+                        }}
+                        color="#b3394a"
+                        _hover={{ bg: "#fff1f2" }}
+                      >
+                        <Trash2 size={16} />
+                      </IconButton>
                     </HStack>
                   </VStack>
                 </Flex>

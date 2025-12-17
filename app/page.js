@@ -22,33 +22,23 @@ const PRIORITY_RANK = {
 };
 
 export default function HomePage() {
-  // All tasks state
   const [tasks, setTasks] = useState([]);
-
-  // Loading
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filters & sorting
   const [filter, setFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [sortBy, setSortBy] = useState("none");
   const [sortDirection, setSortDirection] = useState("asc");
 
-  // AI state
   const [suggestedTaskId, setSuggestedTaskId] = useState(null);
   const [aiState, setAiState] = useState("idle");
   const [nextExplainability, setNextExplainability] = useState(null);
 
-  // Tabs
   const [activeTab, setActiveTab] = useState("plan");
-
-  // UI: is de AI Next Task card open/closed?
   const [isAiCardOpen, setIsAiCardOpen] = useState(false);
 
-  // Edit task state
   const [editingTask, setEditingTask] = useState(null);
 
-  // Load tasks
   useEffect(() => {
     async function loadTasks() {
       try {
@@ -64,11 +54,6 @@ export default function HomePage() {
     loadTasks();
   }, []);
 
-  /**
-   * Add task (with dueDate)
-   * - If prioritySource === "ai": server computes priority + explainability and persists it
-   * - If prioritySource === "manual": server stores provided priority
-   */
   const handleAddTask = async (
     title,
     priorityFromUI,
@@ -84,14 +69,9 @@ export default function HomePage() {
       title: title.trim(),
       description: descriptionFromUI?.trim() || "",
       status: "To Do",
-
-      // Always send a priority value; server will override when source === "ai"
       priority: priorityFromUI || "Medium",
       prioritySource: source,
-
       progress: 0,
-
-      // due date from UI (YYYY-MM-DD) or null
       dueDate: dueDateFromUI || null,
     };
 
@@ -116,7 +96,6 @@ export default function HomePage() {
     }
   };
 
-  // Toggle task status (cyclic, UX-correct)
   const handleToggleStatus = async (taskId) => {
     const target = tasks.find((t) => t.id === taskId);
     if (!target) return;
@@ -159,7 +138,6 @@ export default function HomePage() {
     }
   };
 
-  // Delete task (optimistic)
   const handleDeleteTask = async (taskId) => {
     const oldTasks = tasks;
     setTasks(tasks.filter((t) => t.id !== taskId));
@@ -173,7 +151,6 @@ export default function HomePage() {
     }
   };
 
-  // Update task
   const handleUpdateTask = async (taskId, updates) => {
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
@@ -200,7 +177,6 @@ export default function HomePage() {
     setEditingTask(task);
   };
 
-  // Filtered tasks
   const filteredTasks = useMemo(
     () =>
       tasks.filter((t) => {
@@ -212,7 +188,6 @@ export default function HomePage() {
     [tasks, filter, priorityFilter]
   );
 
-  // Sorted tasks
   const sortedTasks = useMemo(() => {
     const list = [...filteredTasks];
     if (sortBy === "none") return list;
@@ -232,7 +207,6 @@ export default function HomePage() {
     });
   }, [filteredTasks, sortBy, sortDirection]);
 
-  // AI Next Task
   const handleSuggestNextTask = () => {
     if (!tasks.length) {
       setSuggestedTaskId(null);
@@ -261,7 +235,7 @@ export default function HomePage() {
       : null;
 
   return (
-    <Box minH="100vh" bg="#e9ecf5">
+    <Box minH="100vh" bg="appBg">
       <Topbar />
       <RotateHint />
 
@@ -269,12 +243,15 @@ export default function HomePage() {
         {/* Tabs */}
         <Box mb={6}>
           <Flex
-            bg="white"
+            bg="cardBg"
             borderRadius="full"
             p="4px"
-            border="1px solid #dde2f2"
-            maxW="260px"
+            border="1px solid"
+            borderColor="border"
+            maxW="280px"
             boxShadow="sm"
+            // subtle brand wash behind the pill
+            background="linear-gradient(180deg, rgba(79,70,229,0.06) 0%, rgba(255,255,255,1) 55%)"
           >
             <Button
               onClick={() => setActiveTab("plan")}
@@ -282,8 +259,15 @@ export default function HomePage() {
               size="sm"
               borderRadius="full"
               fontSize="xs"
-              bg={activeTab === "plan" ? "#1f2335" : "transparent"}
-              color={activeTab === "plan" ? "white" : "#6b708c"}
+              bg={activeTab === "plan" ? "brand.500" : "transparent"}
+              color={activeTab === "plan" ? "white" : "muted"}
+              _hover={{
+                bg: activeTab === "plan" ? "brand.600" : "brand.50",
+                color: activeTab === "plan" ? "white" : "text",
+              }}
+              _focusVisible={{
+                boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
+              }}
             >
               Plan
             </Button>
@@ -294,8 +278,15 @@ export default function HomePage() {
               size="sm"
               borderRadius="full"
               fontSize="xs"
-              bg={activeTab === "tasks" ? "#1f2335" : "transparent"}
-              color={activeTab === "tasks" ? "white" : "#6b708c"}
+              bg={activeTab === "tasks" ? "brand.500" : "transparent"}
+              color={activeTab === "tasks" ? "white" : "muted"}
+              _hover={{
+                bg: activeTab === "tasks" ? "brand.600" : "brand.50",
+                color: activeTab === "tasks" ? "white" : "text",
+              }}
+              _focusVisible={{
+                boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
+              }}
             >
               Tasks
             </Button>
@@ -305,13 +296,14 @@ export default function HomePage() {
         {/* TAB 1: PLAN */}
         {activeTab === "plan" && (
           <Box
-            bg="white"
+            bg="cardBg"
             borderRadius="xl"
             p={4}
             boxShadow="sm"
-            border="1px solid #dde2f2"
+            border="1px solid"
+            borderColor="border"
           >
-            <Heading size="sm" mb={2} color="#1f2335">
+            <Heading size="sm" mb={2} color="text">
               Add a new task
             </Heading>
 
@@ -324,11 +316,12 @@ export default function HomePage() {
           <Stack spacing={4}>
             {/* Filters */}
             <Box
-              bg="white"
+              bg="cardBg"
               borderRadius="lg"
               p={4}
               boxShadow="sm"
-              border="1px solid #dde2f2"
+              border="1px solid"
+              borderColor="border"
             >
               <Stack direction={{ base: "column", md: "row" }} spacing={4}>
                 <Box flex="1">
@@ -362,14 +355,15 @@ export default function HomePage() {
 
             {/* AI Next Task */}
             <Box
-              bg="white"
+              bg="cardBg"
               borderRadius="lg"
               p={4}
-              border="1px solid #dde2f2"
+              border="1px solid"
+              borderColor="border"
               boxShadow="sm"
             >
               <Flex justify="space-between" align="center">
-                <Heading size="sm" color="#1f2335">
+                <Heading size="sm" color="text">
                   AI Next Task
                 </Heading>
 
@@ -385,11 +379,14 @@ export default function HomePage() {
                   height="2.3rem"
                   px={6}
                   borderRadius="full"
-                  bg="#1f2335"
+                  bg="brand.500"
                   color="white"
                   fontSize="xs"
-                  _hover={{ transform: "translateY(-1px)" }}
+                  _hover={{ bg: "brand.600", transform: "translateY(-1px)" }}
                   _active={{ transform: "scale(0.98)" }}
+                  _focusVisible={{
+                    boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
+                  }}
                 >
                   {isAiCardOpen ? "Hide" : "Show"}
                 </Button>
@@ -399,8 +396,9 @@ export default function HomePage() {
                 <Box
                   mt={3}
                   borderRadius="lg"
-                  bg="#f5f6ff"
-                  border="1px solid #dde2f2"
+                  bg="brand.50"
+                  border="1px solid"
+                  borderColor="border"
                   p={3}
                 >
                   <NextTaskBanner
@@ -415,16 +413,17 @@ export default function HomePage() {
 
             {/* Task list */}
             <Box
-              bg="white"
+              bg="cardBg"
               borderRadius="xl"
               p={4}
               boxShadow="sm"
-              border="1px solid #dde2f2"
+              border="1px solid"
+              borderColor="border"
             >
               <Heading
                 size="md"
                 mb={3}
-                color="#1f2335"
+                color="text"
                 fontWeight="semibold"
                 letterSpacing="-0.01em"
               >
@@ -433,14 +432,14 @@ export default function HomePage() {
 
               <Box
                 h="1px"
-                bg="linear-gradient(to right, #dde2f2, transparent)"
+                bg="linear-gradient(to right, var(--chakra-colors-brand-200), transparent)"
                 mb={4}
               />
 
               {isLoading ? (
-                <Text color="#6b708c">Loading tasks…</Text>
+                <Text color="muted">Loading tasks…</Text>
               ) : sortedTasks.length === 0 ? (
-                <Text color="#9aa0c3">No tasks match your filters.</Text>
+                <Text color="muted">No tasks match your filters.</Text>
               ) : (
                 <TaskTable
                   tasks={sortedTasks}

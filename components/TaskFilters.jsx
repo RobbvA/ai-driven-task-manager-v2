@@ -1,40 +1,42 @@
 "use client";
 
-import { Box, Text } from "@chakra-ui/react";
+import { HStack, Button, Box } from "@chakra-ui/react";
 
 const FILTERS = ["All", "To Do", "In Progress", "Done"];
 
 export default function TaskFilters({ currentFilter, onChangeFilter }) {
   return (
     <Box>
-      <Text fontSize="xs" color="#6b708c" mb={1}>
-        Status
-      </Text>
+      <HStack spacing={2} flexWrap="wrap">
+        {FILTERS.map((filter) => {
+          const isActive = currentFilter === filter;
 
-      <Box
-        as="select"
-        value={currentFilter}
-        onChange={(e) => onChangeFilter(e.target.value)}
-        w="100%"
-        h="36px"
-        px={3}
-        borderRadius="md"
-        border="1px solid #dde2f2"
-        bg="#ffffff"
-        color="#1f2335"
-        fontSize="sm"
-        outline="none"
-        _focus={{
-          borderColor: "#b5baff",
-          boxShadow: "0 0 0 3px rgba(181, 186, 255, 0.35)",
-        }}
-      >
-        {FILTERS.map((filter) => (
-          <option key={filter} value={filter}>
-            {filter}
-          </option>
-        ))}
-      </Box>
+          return (
+            <Button
+              key={filter}
+              size="xs"
+              borderRadius="full"
+              variant="solid"
+              bg={isActive ? "brand.500" : "brand.50"}
+              color={isActive ? "white" : "text"}
+              border="1px solid"
+              borderColor={isActive ? "brand.500" : "border"}
+              _hover={{
+                bg: isActive ? "brand.600" : "brand.100",
+              }}
+              _active={{
+                transform: "scale(0.98)",
+              }}
+              _focusVisible={{
+                boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
+              }}
+              onClick={() => onChangeFilter(filter)}
+            >
+              {filter}
+            </Button>
+          );
+        })}
+      </HStack>
     </Box>
   );
 }
