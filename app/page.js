@@ -39,14 +39,32 @@ export default function HomePage() {
 
   const [editingTask, setEditingTask] = useState(null);
 
+  // Hard guarantee: always treat tasks as array in UI logic
+  const safeTasks = Array.isArray(tasks) ? tasks : [];
+
   useEffect(() => {
     async function loadTasks() {
       try {
         const res = await fetch("/api/tasks");
         const data = await res.json();
-        setTasks(data);
+
+        if (!res.ok) {
+          console.error("Failed to load tasks:", data);
+          setTasks([]);
+          return;
+        }
+
+        // Accept either: { tasks: [...] } OR [...] for backwards compatibility
+        const nextTasks = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.tasks)
+          ? data.tasks
+          : [];
+
+        setTasks(nextTasks);
       } catch (err) {
         console.error("Failed to load tasks:", err);
+        setTasks([]);
       } finally {
         setIsLoading(false);
       }
@@ -82,14 +100,26 @@ export default function HomePage() {
         body: JSON.stringify(payload),
       });
 
-      const created = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
-        console.error("Failed to create task:", created);
+        console.error("Failed to create task:", data);
         return;
       }
 
-      setTasks((prev) => [created, ...prev]);
+      // API now returns { task: {...} } (but keep backward compatibility)
+      const created = data?.task ?? data;
+
+      if (!created?.id) {
+        console.error("Create returned no task:", data);
+        return;
+      }
+
+      setTasks((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        return [created, ...list];
+      });
+
       setAiState("idle");
     } catch (err) {
       console.error("Failed to create task:", err);
@@ -97,7 +127,7 @@ export default function HomePage() {
   };
 
   const handleToggleStatus = async (taskId) => {
-    const target = tasks.find((t) => t.id === taskId);
+    const target = safeTasks.find((t) => t.id === taskId);
     if (!target) return;
 
     let newStatus = target.status;
@@ -124,14 +154,26 @@ export default function HomePage() {
         }),
       });
 
-      const updated = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
-        console.error("Failed to toggle status:", updated);
+        console.error("Failed to toggle status:", data);
         return;
       }
 
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+      // If your PATCH route returns { task }, accept it; otherwise accept task directly
+      const updated = data?.task ?? data;
+
+      if (!updated?.id) {
+        console.error("Update returned no task:", data);
+        return;
+      }
+
+      setTasks((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        return list.map((t) => (t.id === taskId ? updated : t));
+      });
+
       setAiState("idle");
     } catch (err) {
       console.error("Failed to toggle status:", err);
@@ -139,8 +181,9 @@ export default function HomePage() {
   };
 
   const handleDeleteTask = async (taskId) => {
-    const oldTasks = tasks;
-    setTasks(tasks.filter((t) => t.id !== taskId));
+    const oldTasks = safeTasks;
+
+    setTasks(oldTasks.filter((t) => t.id !== taskId));
 
     try {
       const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
@@ -159,14 +202,25 @@ export default function HomePage() {
         body: JSON.stringify(updates),
       });
 
-      const updated = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
-        console.error("Failed to update task:", updated);
+        console.error("Failed to update task:", data);
         throw new Error("Failed to update task");
       }
 
-      setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+      const updated = data?.task ?? data;
+
+      if (!updated?.id) {
+        console.error("Update returned no task:", data);
+        return;
+      }
+
+      setTasks((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        return list.map((t) => (t.id === taskId ? updated : t));
+      });
+
       setAiState("idle");
     } catch (err) {
       console.error("Failed to update task:", err);
@@ -179,13 +233,13 @@ export default function HomePage() {
 
   const filteredTasks = useMemo(
     () =>
-      tasks.filter((t) => {
+      safeTasks.filter((t) => {
         if (filter !== "All" && t.status !== filter) return false;
         if (priorityFilter !== "All" && t.priority !== priorityFilter)
           return false;
         return true;
       }),
-    [tasks, filter, priorityFilter]
+    [safeTasks, filter, priorityFilter]
   );
 
   const sortedTasks = useMemo(() => {
@@ -208,14 +262,14 @@ export default function HomePage() {
   }, [filteredTasks, sortBy, sortDirection]);
 
   const handleSuggestNextTask = () => {
-    if (!tasks.length) {
+    if (!safeTasks.length) {
       setSuggestedTaskId(null);
       setNextExplainability(null);
       setAiState("no-tasks");
       return;
     }
 
-    const detailed = suggestNextTaskDetailed(tasks);
+    const detailed = suggestNextTaskDetailed(safeTasks);
 
     if (!detailed || !detailed.taskId) {
       setSuggestedTaskId(null);
@@ -231,7 +285,7 @@ export default function HomePage() {
 
   const suggestedTask =
     suggestedTaskId != null
-      ? tasks.find((t) => t.id === suggestedTaskId)
+      ? safeTasks.find((t) => t.id === suggestedTaskId)
       : null;
 
   return (
@@ -250,7 +304,6 @@ export default function HomePage() {
             borderColor="border"
             maxW="280px"
             boxShadow="sm"
-            // subtle brand wash behind the pill
             background="linear-gradient(180deg, rgba(79,70,229,0.06) 0%, rgba(255,255,255,1) 55%)"
           >
             <Button
@@ -259,14 +312,10 @@ export default function HomePage() {
               size="sm"
               borderRadius="full"
               fontSize="xs"
-              bg={activeTab === "plan" ? "brand.500" : "transparent"}
-              color={activeTab === "plan" ? "white" : "muted"}
+              bg={activeTab === "plan" ? "#b5baff" : "transparent"}
+              color={activeTab === "plan" ? "#1f2335" : "#6b708c"}
               _hover={{
-                bg: activeTab === "plan" ? "brand.600" : "brand.50",
-                color: activeTab === "plan" ? "white" : "text",
-              }}
-              _focusVisible={{
-                boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
+                bg: activeTab === "plan" ? "#b5baff" : "#eef0ff",
               }}
             >
               Plan
@@ -278,14 +327,10 @@ export default function HomePage() {
               size="sm"
               borderRadius="full"
               fontSize="xs"
-              bg={activeTab === "tasks" ? "brand.500" : "transparent"}
-              color={activeTab === "tasks" ? "white" : "muted"}
+              bg={activeTab === "tasks" ? "#b5baff" : "transparent"}
+              color={activeTab === "tasks" ? "#1f2335" : "#6b708c"}
               _hover={{
-                bg: activeTab === "tasks" ? "brand.600" : "brand.50",
-                color: activeTab === "tasks" ? "white" : "text",
-              }}
-              _focusVisible={{
-                boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
+                bg: activeTab === "tasks" ? "#b5baff" : "#eef0ff",
               }}
             >
               Tasks

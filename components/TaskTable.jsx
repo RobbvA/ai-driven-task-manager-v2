@@ -1,4 +1,4 @@
-//components/TaskTable.jsx
+// components/TaskTable.jsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -84,17 +84,25 @@ export default function TaskTable({
     >
       <VStack spacing={0} align="stretch">
         {tasks.map((task, index) => {
-          const pr = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.Medium;
-          const st = STATUS_STYLES[task.status] || STATUS_STYLES["To Do"];
+          const pr = PRIORITY_STYLES[task?.priority] || PRIORITY_STYLES.Medium;
+          const st = STATUS_STYLES[task?.status] || STATUS_STYLES["To Do"];
 
-          const isDone = task.status === "Done";
-          const isHighlighted = highlightedTaskId === task.id;
-          const isExpanded = expandedTaskId === task.id;
+          // Guaranteed-unique key for React reconciliation
+          const key =
+            task?.id ??
+            `${task?.title ?? "task"}-${task?.createdAt ?? "no-date"}-${index}`;
+
+          // Stable UI identifier even if id is missing (shouldn't happen, but defensive)
+          const taskId = task?.id ?? key;
+
+          const isDone = task?.status === "Done";
+          const isHighlighted = highlightedTaskId === taskId;
+          const isExpanded = expandedTaskId === taskId;
 
           const rowAccent = isDone ? "#22c55e" : pr.dot;
 
           return (
-            <Box key={task.id}>
+            <Box key={key}>
               <Box
                 px={{ base: 4, md: 5 }}
                 py={4}
@@ -104,7 +112,7 @@ export default function TaskTable({
                 _hover={{ bg: isHighlighted ? "#e4f2ff" : "#f6f7ff" }}
                 transition="background-color 0.15s ease-out"
                 cursor="pointer"
-                onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                onClick={() => setExpandedTaskId(isExpanded ? null : taskId)}
               >
                 <Box
                   position="absolute"
@@ -126,7 +134,7 @@ export default function TaskTable({
                       opacity={isDone ? 0.6 : 1}
                       noOfLines={1}
                     >
-                      {task.title}
+                      {task?.title}
                     </Text>
 
                     <HStack spacing={2} mt={1} flexWrap="wrap">
@@ -140,13 +148,13 @@ export default function TaskTable({
                         border="1px solid"
                         borderColor={st.border}
                       >
-                        {task.status}
+                        {task?.status}
                       </Box>
 
                       <Text fontSize="xs" color="#6b708c">
                         Progress{" "}
                         <Box as="span" fontWeight="700" color="#1f2335">
-                          {typeof task.progress === "number"
+                          {typeof task?.progress === "number"
                             ? `${task.progress}%`
                             : "—"}
                         </Box>
@@ -155,7 +163,7 @@ export default function TaskTable({
                       <Text fontSize="xs" color="#6b708c">
                         Due{" "}
                         <Box as="span" fontWeight="700" color="#1f2335">
-                          {task.dueDate || "—"}
+                          {task?.dueDate || "—"}
                         </Box>
                       </Text>
                     </HStack>
@@ -169,7 +177,7 @@ export default function TaskTable({
                       >
                         <Box
                           h="100%"
-                          w={`${task.progress ?? 0}%`}
+                          w={`${task?.progress ?? 0}%`}
                           bg={isDone ? "#22c55e" : pr.bar}
                           borderRadius="full"
                           transition="width 0.2s ease-out"
@@ -177,7 +185,7 @@ export default function TaskTable({
                       </Box>
                     </Box>
 
-                    {isExpanded && task.description && (
+                    {isExpanded && task?.description && (
                       <Box
                         mt={3}
                         p={3}
@@ -212,7 +220,7 @@ export default function TaskTable({
                         fontSize="xs"
                         textTransform="none"
                       >
-                        {task.priority}
+                        {task?.priority}
                       </Badge>
 
                       {canExplain(task) && (
@@ -253,6 +261,7 @@ export default function TaskTable({
                         title="Toggle task"
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!task?.id) return;
                           onToggleStatus(task.id);
                         }}
                         _hover={{ bg: "#eef0ff" }}
@@ -267,6 +276,7 @@ export default function TaskTable({
                         title="Edit task"
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!task?.id) return;
                           onEditTask?.(task);
                         }}
                         _hover={{ bg: "#eef0ff" }}
@@ -281,6 +291,7 @@ export default function TaskTable({
                         title="Delete task"
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!task?.id) return;
                           onDeleteTask(task.id);
                         }}
                         color="#b3394a"
@@ -346,18 +357,18 @@ export default function TaskTable({
                       <VStack align="stretch" spacing={2}>
                         {reasonsForChosenPriority.map((r, idx) => (
                           <Box
-                            key={`${r.ruleId || "rule"}-${idx}`}
+                            key={`${r?.ruleId || "rule"}-${idx}`}
                             border="1px solid #e3e5f2"
                             borderRadius="md"
                             p={3}
                             bg="#ffffff"
                           >
                             <Text fontSize="sm" color="#1e2235">
-                              {r.rationale || "Matched rule"}
+                              {r?.rationale || "Matched rule"}
                             </Text>
                             <Text fontSize="xs" color="#9aa0c3">
-                              Rule: {r.ruleId} • Keyword: {r.keyword} • Weight:{" "}
-                              {r.weight}
+                              Rule: {r?.ruleId} • Keyword: {r?.keyword} •
+                              Weight: {r?.weight}
                             </Text>
                           </Box>
                         ))}
