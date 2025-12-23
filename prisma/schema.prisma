@@ -7,9 +7,11 @@ generator client {
 
 
 datasource db {
-  provider = "sqlite"
+  provider = "libsql"
   url      = env("DATABASE_URL")
+  authToken = env("TURSO_AUTH_TOKEN")
 }
+
 
 model Task {
   id                   String   @id @default(cuid())
