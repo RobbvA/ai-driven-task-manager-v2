@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import prisma from "../../../lib/prisma";
 import { suggestPriorityDetailed } from "../../../lib/aiPriorityEngine";
 
+function serializeError(error) {
+  return {
+    message: error?.message ?? String(error),
+    name: error?.name,
+    code: error?.code,
+    stack: error?.stack,
+  };
+}
+
 export async function GET() {
   try {
     const tasks = await prisma.task.findMany({
@@ -12,7 +21,11 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json(
-      { tasks: [], error: "Failed to fetch tasks" },
+      {
+        tasks: [],
+        error: "Failed to fetch tasks",
+        debug: serializeError(error), // TEMP: remove after fix
+      },
       { status: 500 }
     );
   }
@@ -73,7 +86,10 @@ export async function POST(request) {
   } catch (error) {
     console.error("Error creating task:", error);
     return NextResponse.json(
-      { error: "Failed to create task" },
+      {
+        error: "Failed to create task",
+        debug: serializeError(error), // TEMP: remove after fix
+      },
       { status: 500 }
     );
   }
