@@ -12,7 +12,6 @@
     "@chakra-ui/react": "^3.30.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@prisma/adapter-libsql": "^7.2.0",
     "@prisma/client": "6.19.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.561.0",
