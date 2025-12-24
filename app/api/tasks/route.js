@@ -2,13 +2,38 @@ import { NextResponse } from "next/server";
 import prisma from "../../../lib/prisma";
 import { suggestPriorityDetailed } from "../../../lib/aiPriorityEngine";
 
+/**
+ * NOTE:
+ * - We need actionable debug in Vercel to fix this fast.
+ * - Vercel “Production” runs with NODE_ENV=production, so your previous logic hid debug.
+ * - This implementation exposes debug only when explicitly enabled via env:
+ *     API_DEBUG=1
+ *   (safe: you control it in Vercel env vars, and you can remove it after)
+ */
+
 function serializeError(error) {
   return {
     message: error?.message ?? String(error),
     name: error?.name,
     code: error?.code,
-    // stack niet lekken naar clients in production
-    stack: process.env.NODE_ENV === "production" ? undefined : error?.stack,
+    // stack only if explicitly enabled
+    stack: process.env.API_DEBUG === "1" ? error?.stack : undefined,
+  };
+}
+
+function withDebug(base, error) {
+  const enableDebug = process.env.API_DEBUG === "1";
+  if (!enableDebug) return base;
+  return {
+    ...base,
+    debug: serializeError(error),
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      hasDatabaseUrl: !!process.env.DATABASE_URL,
+      databaseUrlPrefix: process.env.DATABASE_URL
+        ? process.env.DATABASE_URL.split("://")[0]
+        : null,
+    },
   };
 }
 
@@ -22,15 +47,13 @@ export async function GET() {
   } catch (error) {
     console.error("Error fetching tasks:", error);
 
-    const body = {
-      tasks: [],
-      error: "Failed to fetch tasks",
-    };
-
-    // alleen debug buiten production
-    if (process.env.NODE_ENV !== "production") {
-      body.debug = serializeError(error);
-    }
+    const body = withDebug(
+      {
+        tasks: [],
+        error: "Failed to fetch tasks",
+      },
+      error
+    );
 
     return NextResponse.json(body, { status: 500 });
   }
@@ -48,7 +71,7 @@ export async function POST(request) {
       progress,
       dueDate,
       prioritySource, // "ai" | "manual"
-    } = body;
+    } = body ?? {};
 
     if (!title || typeof title !== "string" || !title.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
@@ -72,7 +95,7 @@ export async function POST(request) {
     const task = await prisma.task.create({
       data: {
         title: title.trim(),
-        description: description ?? "",
+        description: typeof description === "string" ? description : "",
         status: status ?? "To Do",
         priority: finalPriority,
         prioritySource: source,
@@ -91,13 +114,12 @@ export async function POST(request) {
   } catch (error) {
     console.error("Error creating task:", error);
 
-    const body = {
-      error: "Failed to create task",
-    };
-
-    if (process.env.NODE_ENV !== "production") {
-      body.debug = serializeError(error);
-    }
+    const body = withDebug(
+      {
+        error: "Failed to create task",
+      },
+      error
+    );
 
     return NextResponse.json(body, { status: 500 });
   }
