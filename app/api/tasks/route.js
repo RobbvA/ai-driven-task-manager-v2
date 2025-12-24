@@ -7,7 +7,8 @@ function serializeError(error) {
     message: error?.message ?? String(error),
     name: error?.name,
     code: error?.code,
-    stack: error?.stack,
+    // stack niet lekken naar clients in production
+    stack: process.env.NODE_ENV === "production" ? undefined : error?.stack,
   };
 }
 
@@ -20,14 +21,18 @@ export async function GET() {
     return NextResponse.json({ tasks }, { status: 200 });
   } catch (error) {
     console.error("Error fetching tasks:", error);
-    return NextResponse.json(
-      {
-        tasks: [],
-        error: "Failed to fetch tasks",
-        debug: serializeError(error), // TEMP: remove after fix
-      },
-      { status: 500 }
-    );
+
+    const body = {
+      tasks: [],
+      error: "Failed to fetch tasks",
+    };
+
+    // alleen debug buiten production
+    if (process.env.NODE_ENV !== "production") {
+      body.debug = serializeError(error);
+    }
+
+    return NextResponse.json(body, { status: 500 });
   }
 }
 
@@ -45,7 +50,7 @@ export async function POST(request) {
       prioritySource, // "ai" | "manual"
     } = body;
 
-    if (!title || typeof title !== "string") {
+    if (!title || typeof title !== "string" || !title.trim()) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
@@ -85,12 +90,15 @@ export async function POST(request) {
     return NextResponse.json({ task }, { status: 201 });
   } catch (error) {
     console.error("Error creating task:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to create task",
-        debug: serializeError(error), // TEMP: remove after fix
-      },
-      { status: 500 }
-    );
+
+    const body = {
+      error: "Failed to create task",
+    };
+
+    if (process.env.NODE_ENV !== "production") {
+      body.debug = serializeError(error);
+    }
+
+    return NextResponse.json(body, { status: 500 });
   }
 }
