@@ -1,16 +1,34 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  webpack: (config, { isServer }) => {
+    // Prevent markdown/license parse errors
+    config.module.rules.push(
+      { test: /\.md$/i, type: "asset/source" },
+      { test: /LICENSE$/i, type: "asset/source" }
+    );
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-  ]),
-]);
+    // Keep native/binary libsql packages out of bundling
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push(({ request }, callback) => {
+        if (!request) return callback();
 
-export default eslintConfig;
+        const shouldExternalize =
+          request.includes("@libsql/win32-x64-msvc") ||
+          request.includes("@libsql/linux-x64-gnu") ||
+          request.includes("@libsql/darwin") ||
+          request.endsWith(".node");
+
+        if (shouldExternalize) {
+          return callback(null, `commonjs ${request}`);
+        }
+
+        return callback();
+      });
+    }
+
+    return config;
+  },
+};
+
+export default nextConfig;

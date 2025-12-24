@@ -1,11 +1,9 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -16,8 +14,7 @@ model Task {
   status               String   @default("To Do")
   priority             String   @default("Medium")
 
-  // V2.3 Explainability (persisted)
-  prioritySource       String   @default("manual") // "manual" | "ai"
+  prioritySource       String   @default("manual")
   priorityScore        Int?
   priorityReasons      Json?
   priorityModelVersion String?

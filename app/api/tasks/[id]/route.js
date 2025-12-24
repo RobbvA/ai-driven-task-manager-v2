@@ -2,11 +2,27 @@
 import { NextResponse } from "next/server";
 import prisma from "../../../../lib/prisma";
 
-// PATCH /api/tasks/:id → status / progress / title / description / priority / dueDate bijwerken
+// Helper: Next.js route params zijn in Next 16 gewoon een object.
+// We tolereren meerdere vormen om build/edge verschillen te overleven.
+function getIdFromContext(context) {
+  const p = context?.params;
+  // Soms komt dit als Promise in oudere snippets; we ondersteunen beide zonder crash.
+  if (p && typeof p.then === "function") {
+    // Let op: we mogen hier niet async worden in helper, dus caller handelt dit af
+    return null;
+  }
+  return p?.id ?? null;
+}
+
 export async function PATCH(request, context) {
   try {
-    const { params } = context;
-    const { id } = await params; // ⬅️ belangrijk: params is een Promise in Next 15
+    let id = getIdFromContext(context);
+
+    // Fallback als iemand ooit "params is Promise" code had:
+    if (!id && context?.params && typeof context.params.then === "function") {
+      const resolved = await context.params;
+      id = resolved?.id ?? null;
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -16,10 +32,10 @@ export async function PATCH(request, context) {
     }
 
     const body = await request.json();
-    const { status, progress, title, description, priority, dueDate } = body;
+    const { status, progress, title, description, priority, dueDate } =
+      body ?? {};
 
     const data = {};
-
     if (status !== undefined) data.status = status;
     if (progress !== undefined) data.progress = progress;
     if (title !== undefined) data.title = title;
@@ -27,39 +43,44 @@ export async function PATCH(request, context) {
     if (priority !== undefined) data.priority = priority;
     if (dueDate !== undefined) data.dueDate = dueDate;
 
-    console.log("PATCH /api/tasks/:id", { id, data });
-
     const updatedTask = await prisma.task.update({
       where: { id: String(id) },
       data,
     });
 
-    return NextResponse.json(updatedTask, { status: 200 });
+    // consistent response shape
+    return NextResponse.json({ task: updatedTask }, { status: 200 });
   } catch (error) {
     console.error("Error updating task:", error);
 
-    // Prisma: record not found → nettere 404
-    if (error.code === "P2025") {
+    if (error?.code === "P2025") {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
     return NextResponse.json(
       {
         error: "Failed to update task",
-        details: error.message,
-        code: error.code ?? null,
-        meta: error.meta ?? null,
+        details:
+          process.env.NODE_ENV === "production" ? undefined : error?.message,
+        code: error?.code ?? null,
+        meta:
+          process.env.NODE_ENV === "production"
+            ? undefined
+            : error?.meta ?? null,
       },
       { status: 500 }
     );
   }
 }
 
-// DELETE /api/tasks/:id → task verwijderen op id
 export async function DELETE(request, context) {
   try {
-    const { params } = context;
-    const { id } = await params; // ⬅️ idem: eerst awaiten
+    let id = getIdFromContext(context);
+
+    if (!id && context?.params && typeof context.params.then === "function") {
+      const resolved = await context.params;
+      id = resolved?.id ?? null;
+    }
 
     if (!id) {
       return NextResponse.json(
@@ -67,8 +88,6 @@ export async function DELETE(request, context) {
         { status: 400 }
       );
     }
-
-    console.log("DELETE /api/tasks/:id", { id });
 
     const deletedTask = await prisma.task.delete({
       where: { id: String(id) },
@@ -84,16 +103,20 @@ export async function DELETE(request, context) {
   } catch (error) {
     console.error("Error deleting task:", error);
 
-    if (error.code === "P2025") {
+    if (error?.code === "P2025") {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
     return NextResponse.json(
       {
         error: "Failed to delete task",
-        details: error.message,
-        code: error.code ?? null,
-        meta: error.meta ?? null,
+        details:
+          process.env.NODE_ENV === "production" ? undefined : error?.message,
+        code: error?.code ?? null,
+        meta:
+          process.env.NODE_ENV === "production"
+            ? undefined
+            : error?.meta ?? null,
       },
       { status: 500 }
     );
