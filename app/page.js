@@ -1,3 +1,4 @@
+// app/page.js
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -39,7 +40,6 @@ export default function HomePage() {
 
   const [editingTask, setEditingTask] = useState(null);
 
-  // Hard guarantee: always treat tasks as array in UI logic
   const safeTasks = Array.isArray(tasks) ? tasks : [];
 
   useEffect(() => {
@@ -48,13 +48,6 @@ export default function HomePage() {
         const res = await fetch("/api/tasks");
         const data = await res.json();
 
-        if (!res.ok) {
-          console.error("Failed to load tasks:", data);
-          setTasks([]);
-          return;
-        }
-
-        // Accept either: { tasks: [...] } OR [...] for backwards compatibility
         const nextTasks = Array.isArray(data)
           ? data
           : Array.isArray(data?.tasks)
@@ -62,8 +55,7 @@ export default function HomePage() {
           : [];
 
         setTasks(nextTasks);
-      } catch (err) {
-        console.error("Failed to load tasks:", err);
+      } catch {
         setTasks([]);
       } finally {
         setIsLoading(false);
@@ -81,14 +73,12 @@ export default function HomePage() {
   ) => {
     if (!title?.trim()) return;
 
-    const source = prioritySource === "ai" ? "ai" : "manual";
-
     const payload = {
       title: title.trim(),
       description: descriptionFromUI?.trim() || "",
       status: "To Do",
       priority: priorityFromUI || "Medium",
-      prioritySource: source,
+      prioritySource: prioritySource === "ai" ? "ai" : "manual",
       progress: 0,
       dueDate: dueDateFromUI || null,
     };
@@ -101,96 +91,55 @@ export default function HomePage() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        console.error("Failed to create task:", data);
-        return;
-      }
-
-      // API now returns { task: {...} } (but keep backward compatibility)
       const created = data?.task ?? data;
 
-      if (!created?.id) {
-        console.error("Create returned no task:", data);
-        return;
+      if (created?.id) {
+        setTasks((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
+        setAiState("idle");
       }
-
-      setTasks((prev) => {
-        const list = Array.isArray(prev) ? prev : [];
-        return [created, ...list];
-      });
-
-      setAiState("idle");
-    } catch (err) {
-      console.error("Failed to create task:", err);
-    }
+    } catch {}
   };
 
   const handleToggleStatus = async (taskId) => {
     const target = safeTasks.find((t) => t.id === taskId);
     if (!target) return;
 
-    let newStatus = target.status;
-    let newProgress = target.progress ?? 0;
+    let newStatus = "To Do";
+    let newProgress = 0;
 
     if (target.status === "To Do") {
       newStatus = "In Progress";
-      newProgress = newProgress > 0 ? newProgress : 25;
+      newProgress = target.progress > 0 ? target.progress : 25;
     } else if (target.status === "In Progress") {
       newStatus = "Done";
       newProgress = 100;
-    } else if (target.status === "Done") {
-      newStatus = "To Do";
-      newProgress = 0;
     }
 
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: newStatus,
-          progress: newProgress,
-        }),
+        body: JSON.stringify({ status: newStatus, progress: newProgress }),
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        console.error("Failed to toggle status:", data);
-        return;
-      }
-
-      // If your PATCH route returns { task }, accept it; otherwise accept task directly
       const updated = data?.task ?? data;
 
-      if (!updated?.id) {
-        console.error("Update returned no task:", data);
-        return;
+      if (updated?.id) {
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+        setAiState("idle");
       }
-
-      setTasks((prev) => {
-        const list = Array.isArray(prev) ? prev : [];
-        return list.map((t) => (t.id === taskId ? updated : t));
-      });
-
-      setAiState("idle");
-    } catch (err) {
-      console.error("Failed to toggle status:", err);
-    }
+    } catch {}
   };
 
   const handleDeleteTask = async (taskId) => {
     const oldTasks = safeTasks;
-
     setTasks(oldTasks.filter((t) => t.id !== taskId));
 
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Failed delete");
-    } catch (err) {
+      await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+    } catch {
       setTasks(oldTasks);
-      console.error(err);
     }
   };
 
@@ -203,32 +152,13 @@ export default function HomePage() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        console.error("Failed to update task:", data);
-        throw new Error("Failed to update task");
-      }
-
       const updated = data?.task ?? data;
 
-      if (!updated?.id) {
-        console.error("Update returned no task:", data);
-        return;
+      if (updated?.id) {
+        setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+        setAiState("idle");
       }
-
-      setTasks((prev) => {
-        const list = Array.isArray(prev) ? prev : [];
-        return list.map((t) => (t.id === taskId ? updated : t));
-      });
-
-      setAiState("idle");
-    } catch (err) {
-      console.error("Failed to update task:", err);
-    }
-  };
-
-  const handleStartEditTask = (task) => {
-    setEditingTask(task);
+    } catch {}
   };
 
   const filteredTasks = useMemo(
@@ -248,7 +178,6 @@ export default function HomePage() {
 
     return list.sort((a, b) => {
       let val = 0;
-
       if (sortBy === "priority") {
         val = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
       } else if (sortBy === "progress") {
@@ -256,7 +185,6 @@ export default function HomePage() {
       } else if (sortBy === "dueDate") {
         val = (a.dueDate || "").localeCompare(b.dueDate || "");
       }
-
       return sortDirection === "asc" ? val : -val;
     });
   }, [filteredTasks, sortBy, sortDirection]);
@@ -270,10 +198,7 @@ export default function HomePage() {
     }
 
     const detailed = suggestNextTaskDetailed(safeTasks);
-
-    if (!detailed || !detailed.taskId) {
-      setSuggestedTaskId(null);
-      setNextExplainability(null);
+    if (!detailed?.taskId) {
       setAiState("no-suggestion");
       return;
     }
@@ -294,7 +219,6 @@ export default function HomePage() {
       <RotateHint />
 
       <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
-        {/* Tabs */}
         <Box mb={6}>
           <Flex
             bg="cardBg"
@@ -303,149 +227,92 @@ export default function HomePage() {
             border="1px solid"
             borderColor="border"
             maxW="280px"
-            boxShadow="sm"
-            background="linear-gradient(180deg, rgba(79,70,229,0.06) 0%, rgba(255,255,255,1) 55%)"
           >
             <Button
-              onClick={() => setActiveTab("plan")}
               flex="1"
               size="sm"
               borderRadius="full"
-              fontSize="xs"
-              bg={activeTab === "plan" ? "#b5baff" : "transparent"}
-              color={activeTab === "plan" ? "#1f2335" : "#6b708c"}
-              _hover={{
-                bg: activeTab === "plan" ? "#b5baff" : "#eef0ff",
-              }}
+              bg={activeTab === "plan" ? "brand.500" : "transparent"}
+              color={activeTab === "plan" ? "white" : "muted"}
+              onClick={() => setActiveTab("plan")}
             >
               Plan
             </Button>
-
             <Button
-              onClick={() => setActiveTab("tasks")}
               flex="1"
               size="sm"
               borderRadius="full"
-              fontSize="xs"
-              bg={activeTab === "tasks" ? "#b5baff" : "transparent"}
-              color={activeTab === "tasks" ? "#1f2335" : "#6b708c"}
-              _hover={{
-                bg: activeTab === "tasks" ? "#b5baff" : "#eef0ff",
-              }}
+              bg={activeTab === "tasks" ? "brand.500" : "transparent"}
+              color={activeTab === "tasks" ? "white" : "muted"}
+              onClick={() => setActiveTab("tasks")}
             >
               Tasks
             </Button>
           </Flex>
         </Box>
 
-        {/* TAB 1: PLAN */}
         {activeTab === "plan" && (
           <Box
             bg="cardBg"
             borderRadius="xl"
             p={4}
-            boxShadow="sm"
             border="1px solid"
             borderColor="border"
           >
-            <Heading size="sm" mb={2} color="text">
+            <Heading size="sm" mb={2}>
               Add a new task
             </Heading>
-
             <AddTaskBar onAddTask={handleAddTask} />
           </Box>
         )}
 
-        {/* TAB 2: TASKS */}
         {activeTab === "tasks" && (
           <Stack spacing={4}>
-            {/* Filters */}
             <Box
               bg="cardBg"
               borderRadius="lg"
               p={4}
-              boxShadow="sm"
               border="1px solid"
               borderColor="border"
             >
               <Stack direction={{ base: "column", md: "row" }} spacing={4}>
-                <Box flex="1">
-                  <TaskFilters
-                    currentFilter={filter}
-                    onChangeFilter={setFilter}
-                  />
-                </Box>
-
-                <Box flex="1">
-                  <TaskPriorityFilters
-                    currentPriorityFilter={priorityFilter}
-                    onChangePriorityFilter={setPriorityFilter}
-                  />
-                </Box>
-
-                <Box flex="1">
-                  <TaskSortBar
-                    sortBy={sortBy}
-                    sortDirection={sortDirection}
-                    onChangeSortBy={setSortBy}
-                    onToggleDirection={() =>
-                      setSortDirection((prev) =>
-                        prev === "asc" ? "desc" : "asc"
-                      )
-                    }
-                  />
-                </Box>
+                <TaskFilters
+                  currentFilter={filter}
+                  onChangeFilter={setFilter}
+                />
+                <TaskPriorityFilters
+                  currentPriorityFilter={priorityFilter}
+                  onChangePriorityFilter={setPriorityFilter}
+                />
+                <TaskSortBar
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onChangeSortBy={setSortBy}
+                  onToggleDirection={() =>
+                    setSortDirection((prev) =>
+                      prev === "asc" ? "desc" : "asc"
+                    )
+                  }
+                />
               </Stack>
             </Box>
 
-            {/* AI Next Task */}
             <Box
               bg="cardBg"
               borderRadius="lg"
               p={4}
               border="1px solid"
               borderColor="border"
-              boxShadow="sm"
             >
               <Flex justify="space-between" align="center">
-                <Heading size="sm" color="text">
-                  AI Next Task
-                </Heading>
-
-                <Button
-                  onClick={() => {
-                    setIsAiCardOpen((prev) => {
-                      const next = !prev;
-                      if (!prev) handleSuggestNextTask();
-                      return next;
-                    });
-                  }}
-                  size="sm"
-                  height="2.3rem"
-                  px={6}
-                  borderRadius="full"
-                  bg="brand.500"
-                  color="white"
-                  fontSize="xs"
-                  _hover={{ bg: "brand.600", transform: "translateY(-1px)" }}
-                  _active={{ transform: "scale(0.98)" }}
-                  _focusVisible={{
-                    boxShadow: "0 0 0 3px var(--chakra-colors-brand-200)",
-                  }}
-                >
-                  {isAiCardOpen ? "Hide" : "Show"}
+                <Heading size="sm">AI Next Task</Heading>
+                <Button size="sm" onClick={handleSuggestNextTask}>
+                  Suggest
                 </Button>
               </Flex>
 
-              {isAiCardOpen && (
-                <Box
-                  mt={3}
-                  borderRadius="lg"
-                  bg="brand.50"
-                  border="1px solid"
-                  borderColor="border"
-                  p={3}
-                >
+              {aiState !== "idle" && (
+                <Box mt={3}>
                   <NextTaskBanner
                     aiState={aiState}
                     suggestedTask={suggestedTask}
@@ -456,30 +323,16 @@ export default function HomePage() {
               )}
             </Box>
 
-            {/* Task list */}
             <Box
               bg="cardBg"
               borderRadius="xl"
               p={4}
-              boxShadow="sm"
               border="1px solid"
               borderColor="border"
             >
-              <Heading
-                size="md"
-                mb={3}
-                color="text"
-                fontWeight="semibold"
-                letterSpacing="-0.01em"
-              >
+              <Heading size="md" mb={3}>
                 Task list
               </Heading>
-
-              <Box
-                h="1px"
-                bg="linear-gradient(to right, var(--chakra-colors-brand-200), transparent)"
-                mb={4}
-              />
 
               {isLoading ? (
                 <Text color="muted">Loading tasks…</Text>
@@ -491,14 +344,13 @@ export default function HomePage() {
                   onToggleStatus={handleToggleStatus}
                   onDeleteTask={handleDeleteTask}
                   highlightedTaskId={suggestedTaskId}
-                  onEditTask={handleStartEditTask}
+                  onEditTask={setEditingTask}
                 />
               )}
             </Box>
           </Stack>
         )}
 
-        {/* Edit modal */}
         <TaskEditModal
           isOpen={!!editingTask}
           task={editingTask}
