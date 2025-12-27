@@ -220,14 +220,7 @@ export default function HomePage() {
 
       <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
         <Box mb={6}>
-          <Flex
-            bg="cardBg"
-            borderRadius="full"
-            p="4px"
-            border="1px solid"
-            borderColor="border"
-            maxW="280px"
-          >
+          <Flex bg="cardBg" borderRadius="full" p="4px" maxW="280px">
             <Button
               flex="1"
               size="sm"
@@ -255,9 +248,8 @@ export default function HomePage() {
           <Box
             bg="cardBg"
             borderRadius="xl"
-            p={4}
-            border="1px solid"
-            borderColor="border"
+            p={5}
+            boxShadow="md" // 👈 iets sterker dan de rest
           >
             <Heading size="sm" mb={2}>
               Add a new task
@@ -267,14 +259,8 @@ export default function HomePage() {
         )}
 
         {activeTab === "tasks" && (
-          <Stack spacing={4}>
-            <Box
-              bg="cardBg"
-              borderRadius="lg"
-              p={4}
-              border="1px solid"
-              borderColor="border"
-            >
+          <Stack spacing={6}>
+            <Box bg="cardBg" borderRadius="lg" p={4}>
               <Stack direction={{ base: "column", md: "row" }} spacing={4}>
                 <TaskFilters
                   currentFilter={filter}
@@ -297,13 +283,7 @@ export default function HomePage() {
               </Stack>
             </Box>
 
-            <Box
-              bg="cardBg"
-              borderRadius="lg"
-              p={4}
-              border="1px solid"
-              borderColor="border"
-            >
+            <Box bg="brand.50" borderRadius="lg" p={4}>
               <Flex justify="space-between" align="center">
                 <Heading size="sm">AI Next Task</Heading>
                 <Button size="sm" onClick={handleSuggestNextTask}>
@@ -323,13 +303,7 @@ export default function HomePage() {
               )}
             </Box>
 
-            <Box
-              bg="cardBg"
-              borderRadius="xl"
-              p={4}
-              border="1px solid"
-              borderColor="border"
-            >
+            <Box bg="cardBg" borderRadius="xl" p={4}>
               <Heading size="md" mb={3}>
                 Task list
               </Heading>

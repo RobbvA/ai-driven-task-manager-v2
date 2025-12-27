@@ -61,13 +61,13 @@ const system = createSystem(defaultConfig, {
     // 2) Semantic tokens blijven bestaan zoals je components verwachten: text/muted/border
     semanticTokens: {
       colors: {
-        appBg: { value: "{colors.bg}" },
-        cardBg: { value: "{colors.surface1}" },
-        cardBgSecondary: { value: "{colors.surface2}" },
+        appBg: { value: "#f4f6fb" }, // zachte lichtgrijze canvas
+        cardBg: { value: "#ffffff" }, // echte cards
+        cardBgSecondary: { value: "#f8f9ff" },
 
-        text: { value: "{colors.text}" },
-        muted: { value: "{colors.muted}" },
-        border: { value: "{colors.border}" },
+        text: { value: "#1f2335" },
+        muted: { value: "#6b708c" },
+        border: { value: "rgba(31,35,53,0.08)" },
 
         focusRing: { value: "{colors.brand.200}" },
       },
