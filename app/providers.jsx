@@ -3,10 +3,18 @@
 import { ChakraProvider, createSystem, defaultConfig } from "@chakra-ui/react";
 
 const system = createSystem(defaultConfig, {
+  globalCss: {
+    "html, body": {
+      minHeight: "100%",
+      background: "{colors.bg}",
+      color: "{colors.text}",
+    },
+  },
+
   theme: {
     tokens: {
       colors: {
-        // Base ink / gray system
+        // Base ink/gray
         bg: { value: "#0B0D12" },
         surface1: { value: "#111521" },
         surface2: { value: "#151B2B" },
@@ -15,18 +23,26 @@ const system = createSystem(defaultConfig, {
         text: { value: "#EEF0FF" },
         muted: { value: "rgba(238,240,255,0.68)" },
 
-        // Brand — pastel blue
+        // Brand — pastel blue (BELANGRIJK: volledige schaal, want je UI gebruikt brand.50/100/200/etc)
         brand: {
-          200: { value: "rgba(181,186,255,0.25)" },
+          50: { value: "rgba(181,186,255,0.10)" },
+          100: { value: "rgba(181,186,255,0.14)" },
+          200: { value: "rgba(181,186,255,0.22)" },
+          300: { value: "rgba(181,186,255,0.32)" },
+          400: { value: "rgba(181,186,255,0.45)" },
           500: { value: "#B5BAFF" },
           600: { value: "#9DA3FF" },
+          700: { value: "#7F87FF" },
+          800: { value: "#6A72FF" },
+          900: { value: "#5660FF" },
         },
 
         // AI accent — deeper blue
         ai: {
+          50: { value: "rgba(79,99,255,0.10)" },
+          200: { value: "rgba(79,99,255,0.18)" },
           500: { value: "#4F63FF" },
           700: { value: "#2F46FF" },
-          bg: { value: "rgba(79,99,255,0.14)" },
         },
       },
 
@@ -42,6 +58,7 @@ const system = createSystem(defaultConfig, {
       },
     },
 
+    // 2) Semantic tokens blijven bestaan zoals je components verwachten: text/muted/border
     semanticTokens: {
       colors: {
         appBg: { value: "{colors.bg}" },
@@ -50,6 +67,7 @@ const system = createSystem(defaultConfig, {
 
         text: { value: "{colors.text}" },
         muted: { value: "{colors.muted}" },
+        border: { value: "{colors.border}" },
 
         focusRing: { value: "{colors.brand.200}" },
       },
