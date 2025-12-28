@@ -55,7 +55,7 @@ export default function AddTaskBar({ onAddTask }) {
         <VStack align="stretch" spacing={3}>
           {/* Title */}
           <VStack align="stretch" spacing={2}>
-            <Text fontSize="xs" color="muted" fontWeight="600">
+            <Text fontSize="sm" color="text" fontWeight="700">
               Title
             </Text>
 
@@ -169,7 +169,7 @@ export default function AddTaskBar({ onAddTask }) {
 
           {/* Description */}
           <VStack align="stretch" spacing={2}>
-            <Text fontSize="xs" color="muted" fontWeight="600">
+            <Text fontSize="sm" color="text" fontWeight="700">
               Description (optional)
             </Text>
 
