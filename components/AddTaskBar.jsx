@@ -52,10 +52,15 @@ export default function AddTaskBar({ onAddTask }) {
   return (
     <Box>
       <form onSubmit={handleSubmit}>
-        <VStack align="stretch" spacing={3}>
+        <VStack align="stretch" spacing={4}>
           {/* Title */}
           <VStack align="stretch" spacing={2}>
-            <Text fontSize="sm" color="text" fontWeight="700">
+            <Text
+              fontSize="sm"
+              color="text"
+              fontWeight="800"
+              letterSpacing="0.2px"
+            >
               Title
             </Text>
 
@@ -103,6 +108,7 @@ export default function AddTaskBar({ onAddTask }) {
                 <Popover.Trigger asChild>
                   <IconButton
                     aria-label="What is auto priority?"
+                    title="What is auto priority?"
                     size="xs"
                     variant="ghost"
                     borderRadius="full"
@@ -112,15 +118,15 @@ export default function AddTaskBar({ onAddTask }) {
                 </Popover.Trigger>
 
                 <Popover.Positioner>
-                  <Popover.Content maxW="260px">
+                  <Popover.Content maxW="280px">
                     <Popover.Arrow />
                     <Popover.Body>
-                      <Text fontSize="sm" fontWeight="600" mb={1}>
+                      <Text fontSize="sm" fontWeight="700" mb={1}>
                         Auto priority
                       </Text>
-                      <Text fontSize="sm" color="muted">
-                        The system assigns a priority based on task details like
-                        keywords, urgency, and due date. You can always change
+                      <Text fontSize="sm" color="muted" lineHeight="1.6">
+                        Priority is assigned using deterministic rules based on
+                        keywords, urgency, and due date. You can always override
                         it later.
                       </Text>
                     </Popover.Body>
@@ -169,7 +175,12 @@ export default function AddTaskBar({ onAddTask }) {
 
           {/* Description */}
           <VStack align="stretch" spacing={2}>
-            <Text fontSize="sm" color="text" fontWeight="700">
+            <Text
+              fontSize="sm"
+              color="text"
+              fontWeight="800"
+              letterSpacing="0.2px"
+            >
               Description (optional)
             </Text>
 
@@ -188,6 +199,11 @@ export default function AddTaskBar({ onAddTask }) {
               placeholder="Add context, acceptance criteria, or notes…"
             />
           </VStack>
+
+          <Text fontSize="xs" color="muted">
+            Tip: If it takes more than one sentence to explain, put it in the
+            description.
+          </Text>
         </VStack>
       </form>
     </Box>

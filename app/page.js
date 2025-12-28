@@ -1,7 +1,16 @@
+// app/page.js
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Box, Heading, Text, Flex, Stack, Button } from "@chakra-ui/react";
+import {
+  Box,
+  Heading,
+  Text,
+  Flex,
+  Stack,
+  Button,
+  HStack,
+} from "@chakra-ui/react";
 
 import Topbar from "../components/Topbar";
 import TaskTable from "../components/TaskTable";
@@ -252,38 +261,93 @@ export default function HomePage() {
             borderColor="border"
             boxShadow="sm"
           >
+            {/* Branded header strip (adds color + life) */}
             <Flex
               direction={{ base: "column", md: "row" }}
               align={{ base: "flex-start", md: "center" }}
               justify="space-between"
-              gap={3}
-              mb={4}
+              gap={4}
+              mb={5}
+              p={{ base: 4, md: 5 }}
+              borderRadius="xl"
+              bg="brand.50"
+              border="1px solid"
+              borderColor="border"
             >
               <Box>
                 <Heading size="lg" color="text">
                   What should you work on next?
                 </Heading>
-                <Text fontSize="sm" color="muted" mt={2} maxW="560px">
+
+                <Text
+                  fontSize="sm"
+                  color="muted"
+                  mt={2}
+                  maxW="560px"
+                  lineHeight="1.6"
+                >
                   Add a task and get a clear priority based on urgency and
                   context.
                   <br />
                   No black-box AI — every suggestion is explainable.
                 </Text>
+
+                <HStack spacing={2} mt={3} flexWrap="wrap">
+                  <Box
+                    px={3}
+                    py={1}
+                    borderRadius="full"
+                    bg="white"
+                    border="1px solid"
+                    borderColor="border"
+                    fontSize="xs"
+                    fontWeight="700"
+                    color="text"
+                  >
+                    Deterministic
+                  </Box>
+                  <Box
+                    px={3}
+                    py={1}
+                    borderRadius="full"
+                    bg="white"
+                    border="1px solid"
+                    borderColor="border"
+                    fontSize="xs"
+                    fontWeight="700"
+                    color="text"
+                  >
+                    Explainable
+                  </Box>
+                  <Box
+                    px={3}
+                    py={1}
+                    borderRadius="full"
+                    bg="white"
+                    border="1px solid"
+                    borderColor="border"
+                    fontSize="xs"
+                    fontWeight="700"
+                    color="text"
+                  >
+                    No external AI APIs
+                  </Box>
+                </HStack>
               </Box>
 
               <Box
                 px={3}
                 py={1.5}
                 borderRadius="full"
-                bg="brand.50"
+                bg="white"
                 color="text"
                 border="1px solid"
                 borderColor="border"
                 fontSize="xs"
-                fontWeight="600"
+                fontWeight="700"
                 whiteSpace="nowrap"
               >
-                Tip: Keep titles action-oriented
+                Tip: Start titles with a verb
               </Box>
             </Flex>
 
