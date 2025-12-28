@@ -260,12 +260,14 @@ export default function HomePage() {
               mb={4}
             >
               <Box>
-                <Heading size="md" color="text">
-                  Plan your next task
+                <Heading size="lg" color="text">
+                  What should you work on next?
                 </Heading>
-                <Text fontSize="sm" color="muted" mt={1}>
-                  Add a task with a clear title, optional details, and a due
-                  date.
+                <Text fontSize="sm" color="muted" mt={2} maxW="560px">
+                  Add a task and get a clear priority based on urgency and
+                  context.
+                  <br />
+                  No black-box AI — every suggestion is explainable.
                 </Text>
               </Box>
 
