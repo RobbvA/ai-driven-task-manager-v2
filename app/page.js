@@ -1,8 +1,8 @@
-// app/page.js
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { Box, Heading, Text, Flex, Stack, Button } from "@chakra-ui/react";
+
 import Topbar from "../components/Topbar";
 import TaskTable from "../components/TaskTable";
 import AddTaskBar from "../components/AddTaskBar";
@@ -246,13 +246,45 @@ export default function HomePage() {
         {activeTab === "plan" && (
           <Box
             bg="cardBg"
-            borderRadius="xl"
-            p={5}
-            boxShadow="md" // 👈 iets sterker dan de rest
+            borderRadius="2xl"
+            p={{ base: 5, md: 6 }}
+            border="1px solid"
+            borderColor="border"
+            boxShadow="sm"
           >
-            <Heading size="sm" mb={2}>
-              Add a new task
-            </Heading>
+            <Flex
+              direction={{ base: "column", md: "row" }}
+              align={{ base: "flex-start", md: "center" }}
+              justify="space-between"
+              gap={3}
+              mb={4}
+            >
+              <Box>
+                <Heading size="md" color="text">
+                  Plan your next task
+                </Heading>
+                <Text fontSize="sm" color="muted" mt={1}>
+                  Add a task with a clear title, optional details, and a due
+                  date.
+                </Text>
+              </Box>
+
+              <Box
+                px={3}
+                py={1.5}
+                borderRadius="full"
+                bg="brand.50"
+                color="text"
+                border="1px solid"
+                borderColor="border"
+                fontSize="xs"
+                fontWeight="600"
+                whiteSpace="nowrap"
+              >
+                Tip: Keep titles action-oriented
+              </Box>
+            </Flex>
+
             <AddTaskBar onAddTask={handleAddTask} />
           </Box>
         )}
