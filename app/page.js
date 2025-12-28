@@ -3,8 +3,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Box, Heading, Text, Flex, Stack, Button } from "@chakra-ui/react";
-import ThemeToggleFab from "../components/ThemeToggleFab";
-
 import Topbar from "../components/Topbar";
 import TaskTable from "../components/TaskTable";
 import AddTaskBar from "../components/AddTaskBar";
@@ -217,7 +215,6 @@ export default function HomePage() {
   return (
     <Box minH="100vh" bg="appBg">
       <Topbar />
-      <ThemeToggleFab />
       <RotateHint />
 
       <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
