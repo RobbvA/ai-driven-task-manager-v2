@@ -44,8 +44,6 @@ export default function HomePage() {
   const [nextExplainability, setNextExplainability] = useState(null);
 
   const [activeTab, setActiveTab] = useState("plan");
-  const [isAiCardOpen, setIsAiCardOpen] = useState(false);
-
   const [editingTask, setEditingTask] = useState(null);
 
   const safeTasks = Array.isArray(tasks) ? tasks : [];
@@ -103,67 +101,6 @@ export default function HomePage() {
 
       if (created?.id) {
         setTasks((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
-        setAiState("idle");
-      }
-    } catch {}
-  };
-
-  const handleToggleStatus = async (taskId) => {
-    const target = safeTasks.find((t) => t.id === taskId);
-    if (!target) return;
-
-    let newStatus = "To Do";
-    let newProgress = 0;
-
-    if (target.status === "To Do") {
-      newStatus = "In Progress";
-      newProgress = target.progress > 0 ? target.progress : 25;
-    } else if (target.status === "In Progress") {
-      newStatus = "Done";
-      newProgress = 100;
-    }
-
-    try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, progress: newProgress }),
-      });
-
-      const data = await res.json();
-      const updated = data?.task ?? data;
-
-      if (updated?.id) {
-        setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
-        setAiState("idle");
-      }
-    } catch {}
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    const oldTasks = safeTasks;
-    setTasks(oldTasks.filter((t) => t.id !== taskId));
-
-    try {
-      await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
-    } catch {
-      setTasks(oldTasks);
-    }
-  };
-
-  const handleUpdateTask = async (taskId, updates) => {
-    try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-
-      const data = await res.json();
-      const updated = data?.task ?? data;
-
-      if (updated?.id) {
-        setTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
         setAiState("idle");
       }
     } catch {}
@@ -261,97 +198,25 @@ export default function HomePage() {
             borderColor="border"
             boxShadow="sm"
           >
-            {/* Branded header strip (adds color + life) */}
-            <Flex
-              direction={{ base: "column", md: "row" }}
-              align={{ base: "flex-start", md: "center" }}
-              justify="space-between"
-              gap={4}
-              mb={5}
-              p={{ base: 4, md: 5 }}
-              borderRadius="xl"
-              bg="brand.50"
-              border="1px solid"
-              borderColor="border"
-            >
-              <Box>
-                <Heading size="lg" color="text">
-                  What should you work on next?
-                </Heading>
-
-                <Text
-                  fontSize="sm"
-                  color="muted"
-                  mt={2}
-                  maxW="560px"
-                  lineHeight="1.6"
-                >
-                  Add a task and get a clear priority based on urgency and
-                  context.
-                  <br />
-                  No black-box AI — every suggestion is explainable.
-                </Text>
-
-                <HStack spacing={2} mt={3} flexWrap="wrap">
-                  <Box
-                    px={3}
-                    py={1}
-                    borderRadius="full"
-                    bg="white"
-                    border="1px solid"
-                    borderColor="border"
-                    fontSize="xs"
-                    fontWeight="700"
-                    color="text"
-                  >
-                    Deterministic
-                  </Box>
-                  <Box
-                    px={3}
-                    py={1}
-                    borderRadius="full"
-                    bg="white"
-                    border="1px solid"
-                    borderColor="border"
-                    fontSize="xs"
-                    fontWeight="700"
-                    color="text"
-                  >
-                    Explainable
-                  </Box>
-                  <Box
-                    px={3}
-                    py={1}
-                    borderRadius="full"
-                    bg="white"
-                    border="1px solid"
-                    borderColor="border"
-                    fontSize="xs"
-                    fontWeight="700"
-                    color="text"
-                  >
-                    No external AI APIs
-                  </Box>
-                </HStack>
-              </Box>
-
-              <Box
-                px={3}
-                py={1.5}
-                borderRadius="full"
-                bg="white"
-                color="text"
-                border="1px solid"
-                borderColor="border"
-                fontSize="xs"
-                fontWeight="700"
-                whiteSpace="nowrap"
-              >
-                Tip: Start titles with a verb
-              </Box>
-            </Flex>
-
             <AddTaskBar onAddTask={handleAddTask} />
+
+            {/* Subtle AI context hint */}
+            <Box
+              mt={3}
+              border="1px dashed"
+              borderColor="border"
+              borderRadius="md"
+              p={3}
+              bg="gray.50"
+            >
+              <Text fontSize="sm" fontWeight="600" color="text">
+                Add tasks above to get a Next Task recommendation.
+              </Text>
+              <Text fontSize="xs" color="muted" mt={1} lineHeight="1.5">
+                Priority is calculated from deadlines, urgency and status —
+                always explainable.
+              </Text>
+            </Box>
           </Box>
         )}
 
@@ -412,10 +277,7 @@ export default function HomePage() {
               ) : (
                 <TaskTable
                   tasks={sortedTasks}
-                  onToggleStatus={handleToggleStatus}
-                  onDeleteTask={handleDeleteTask}
                   highlightedTaskId={suggestedTaskId}
-                  onEditTask={setEditingTask}
                 />
               )}
             </Box>
@@ -426,7 +288,7 @@ export default function HomePage() {
           isOpen={!!editingTask}
           task={editingTask}
           onClose={() => setEditingTask(null)}
-          onSave={handleUpdateTask}
+          onSave={() => {}}
         />
       </Box>
     </Box>
