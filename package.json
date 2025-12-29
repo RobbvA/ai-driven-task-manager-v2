@@ -6,7 +6,8 @@
     "dev": "next dev --webpack",
     "build": "prisma generate && prisma db push && next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:nlu": "node scripts/test-nl-parser.mjs"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.30.0",
