@@ -19,8 +19,6 @@ export default function Topbar() {
           py={{ base: 2, md: 2.5 }}
           borderRadius="xl"
           bg="cardBgSecondary"
-          border="1px solid"
-          borderColor="border"
         >
           <Image
             src="/brand/logo.png"
@@ -28,6 +26,9 @@ export default function Topbar() {
             maxH={{ base: "96px", md: "140px" }}
             maxW="100%"
             objectFit="contain"
+            borderRadius="md"
+            border="1px solid"
+            borderColor="rgba(0,0,0,0.08)"
           />
         </Box>
       </Box>
