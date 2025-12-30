@@ -48,7 +48,6 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState("plan");
   const [editingTask, setEditingTask] = useState(null);
 
-  // NEW: dropdown for recently added
   const [isRecentOpen, setIsRecentOpen] = useState(false);
 
   const safeTasks = Array.isArray(tasks) ? tasks : [];
@@ -107,8 +106,6 @@ export default function HomePage() {
       if (created?.id) {
         setTasks((prev) => [created, ...(Array.isArray(prev) ? prev : [])]);
         setAiState("idle");
-
-        // NEW: open dropdown so user sees it worked (optional but nice)
         setIsRecentOpen(true);
       }
     } catch {}
@@ -227,7 +224,6 @@ export default function HomePage() {
       ? safeTasks.find((t) => t.id === suggestedTaskId)
       : null;
 
-  // NEW: recently added list (live from state)
   const recentTasks = useMemo(() => safeTasks.slice(0, 5), [safeTasks]);
 
   return (
@@ -237,23 +233,53 @@ export default function HomePage() {
 
       <Box maxW="1200px" mx="auto" px={{ base: 4, md: 6 }} py={6}>
         <Box mb={6}>
-          <Flex bg="cardBg" borderRadius="full" p="4px" maxW="280px">
+          {/* "Tabs" = segmented control */}
+          <Flex
+            bg="cardBg"
+            border="1px solid"
+            borderColor="border"
+            borderRadius="full"
+            p="4px"
+            maxW="280px"
+            boxShadow="tab"
+          >
             <Button
               flex="1"
               size="sm"
               borderRadius="full"
-              bg={activeTab === "plan" ? "brand.500" : "transparent"}
-              color={activeTab === "plan" ? "white" : "muted"}
+              variant="ghost"
+              bg={activeTab === "plan" ? "cardBgSecondary" : "transparent"}
+              color={activeTab === "plan" ? "text" : "muted"}
+              border="1px solid"
+              borderColor={
+                activeTab === "plan" ? "rgba(0,0,0,0.10)" : "transparent"
+              }
+              boxShadow={activeTab === "plan" ? "card" : "none"}
+              _hover={{
+                bg:
+                  activeTab === "plan" ? "cardBgSecondary" : "cardBgSecondary",
+              }}
               onClick={() => setActiveTab("plan")}
             >
               Plan
             </Button>
+
             <Button
               flex="1"
               size="sm"
               borderRadius="full"
-              bg={activeTab === "tasks" ? "brand.500" : "transparent"}
-              color={activeTab === "tasks" ? "white" : "muted"}
+              variant="ghost"
+              bg={activeTab === "tasks" ? "cardBgSecondary" : "transparent"}
+              color={activeTab === "tasks" ? "text" : "muted"}
+              border="1px solid"
+              borderColor={
+                activeTab === "tasks" ? "rgba(0,0,0,0.10)" : "transparent"
+              }
+              boxShadow={activeTab === "tasks" ? "card" : "none"}
+              _hover={{
+                bg:
+                  activeTab === "tasks" ? "cardBgSecondary" : "cardBgSecondary",
+              }}
               onClick={() => setActiveTab("tasks")}
             >
               Tasks
@@ -268,7 +294,7 @@ export default function HomePage() {
             p={{ base: 5, md: 6 }}
             border="1px solid"
             borderColor="border"
-            boxShadow="sm"
+            boxShadow="card"
           >
             <Flex
               direction={{ base: "column", md: "row" }}
@@ -306,7 +332,6 @@ export default function HomePage() {
 
             <AddTaskBar onAddTask={handleAddTask} />
 
-            {/* NEW: dropdown history to avoid visual clutter */}
             <Box mt={5} pt={4} borderTop="1px solid" borderColor="border">
               <Collapsible.Root
                 open={isRecentOpen}
@@ -330,7 +355,12 @@ export default function HomePage() {
                   </HStack>
 
                   <Collapsible.Trigger asChild>
-                    <Button size="sm" borderRadius="full" variant="ghost">
+                    <Button
+                      size="sm"
+                      borderRadius="full"
+                      variant="ghost"
+                      _hover={{ bg: "cardBgSecondary" }}
+                    >
                       {isRecentOpen ? "Hide" : "Show"}
                     </Button>
                   </Collapsible.Trigger>
@@ -398,7 +428,6 @@ export default function HomePage() {
                               </HStack>
                             </Box>
 
-                            {/* NEW: click-to-edit */}
                             <Button
                               size="sm"
                               borderRadius="full"
@@ -419,7 +448,14 @@ export default function HomePage() {
 
         {activeTab === "tasks" && (
           <Stack spacing={6}>
-            <Box bg="cardBg" borderRadius="lg" p={4}>
+            <Box
+              bg="cardBg"
+              borderRadius="xl"
+              p={4}
+              border="1px solid"
+              borderColor="border"
+              boxShadow="card"
+            >
               <Stack direction={{ base: "column", md: "row" }} spacing={4}>
                 <TaskFilters
                   currentFilter={filter}
@@ -442,9 +478,18 @@ export default function HomePage() {
               </Stack>
             </Box>
 
-            <Box bg="brand.50" borderRadius="lg" p={4}>
+            <Box
+              bg="brand.50"
+              borderRadius="xl"
+              p={4}
+              border="1px solid"
+              borderColor="border"
+              boxShadow="card"
+            >
               <Flex justify="space-between" align="center">
-                <Heading size="sm">AI Next Task</Heading>
+                <Heading size="sm" color="text">
+                  AI Next Task
+                </Heading>
                 <Button size="sm" onClick={handleSuggestNextTask}>
                   Suggest
                 </Button>
@@ -462,8 +507,15 @@ export default function HomePage() {
               )}
             </Box>
 
-            <Box bg="cardBg" borderRadius="xl" p={4}>
-              <Heading size="md" mb={3}>
+            <Box
+              bg="cardBg"
+              borderRadius="xl"
+              p={4}
+              border="1px solid"
+              borderColor="border"
+              boxShadow="card"
+            >
+              <Heading size="md" mb={3} color="text">
                 Task list
               </Heading>
 
