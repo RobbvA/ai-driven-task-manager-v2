@@ -17,7 +17,7 @@ export default function Topbar() {
         <Image
           src="/brand/logo.png"
           alt="AI Task Manager logo"
-          maxH={{ base: "56px", md: "72px" }}
+          maxH={{ base: "64px", md: "88px" }}
           maxW="100%"
           objectFit="contain"
           borderRadius="md"
