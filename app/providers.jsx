@@ -23,7 +23,7 @@ const system = createSystem(defaultConfig, {
         text: { value: "#EEF0FF" },
         muted: { value: "rgba(238,240,255,0.68)" },
 
-        // Brand – onveranderd (was niet het probleem)
+        // Brand
         brand: {
           50: { value: "rgba(181,186,255,0.10)" },
           100: { value: "rgba(181,186,255,0.14)" },
@@ -55,17 +55,30 @@ const system = createSystem(defaultConfig, {
         body: { value: "var(--font-inter), system-ui, sans-serif" },
         heading: { value: "var(--font-inter), system-ui, sans-serif" },
       },
+
+      // 👇 NIEUW: diepte & hiërarchie
+      shadows: {
+        tab: {
+          value: "0 1px 2px rgba(15,18,35,0.05)",
+        },
+        card: {
+          value:
+            "0 1px 2px rgba(15,18,35,0.04), 0 6px 16px rgba(15,18,35,0.06)",
+        },
+        cardHover: {
+          value:
+            "0 4px 12px rgba(15,18,35,0.06), 0 12px 32px rgba(15,18,35,0.08)",
+        },
+      },
     },
 
-    // 👇 Hier corrigeren we het overshoot
     semanticTokens: {
       colors: {
-        // Slechts 1–2 tinten donkerder dan licht thema
-        appBg: { value: "#E9ECF4" }, // was #f4f6fb → net donkerder
-        cardBg: { value: "#F1F3FA" }, // cards blijven licht
+        appBg: { value: "#E9ECF4" },
+        cardBg: { value: "#F1F3FA" },
         cardBgSecondary: { value: "#E6E9F4" },
 
-        text: { value: "#1F2335" }, // goed leesbaar, niet hard
+        text: { value: "#1F2335" },
         muted: { value: "#5F647D" },
         border: { value: "rgba(31,35,53,0.10)" },
 

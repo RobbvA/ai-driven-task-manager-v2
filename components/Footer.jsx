@@ -9,8 +9,9 @@ export default function Footer({ year }) {
       mt={8}
       px={{ base: 4, md: 6 }}
       py={4}
-      borderTop="1px solid #dde2f2"
-      bg="rgba(255,255,255,0.65)"
+      borderTop="1px solid"
+      borderColor="border"
+      bg="cardBgSecondary"
       backdropFilter="blur(8px)"
     >
       <HStack
@@ -20,19 +21,19 @@ export default function Footer({ year }) {
         spacing={4}
         flexWrap="wrap"
       >
-        <Text fontSize="xs" color="#6b708c">
+        <Text fontSize="xs" color="muted">
           © {year} AI Driven Task Manager
         </Text>
 
         <HStack spacing={3}>
-          <Text fontSize="xs" color="#6b708c">
+          <Text fontSize="xs" color="muted">
             Built by{" "}
-            <Box as="span" fontWeight="700" color="#1f2335">
+            <Box as="span" fontWeight="700" color="text">
               dev.robb
             </Box>
           </Text>
 
-          <Text fontSize="xs" color="#9aa0c3">
+          <Text fontSize="xs" color="muted">
             •
           </Text>
 
@@ -40,8 +41,9 @@ export default function Footer({ year }) {
             href="https://github.com/"
             isExternal
             fontSize="xs"
-            color="#374074"
-            _hover={{ textDecoration: "underline" }}
+            color="text"
+            opacity={0.85}
+            _hover={{ textDecoration: "underline", opacity: 1 }}
           >
             GitHub
           </Link>
