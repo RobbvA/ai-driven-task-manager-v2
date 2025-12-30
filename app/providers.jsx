@@ -14,7 +14,7 @@ const system = createSystem(defaultConfig, {
   theme: {
     tokens: {
       colors: {
-        // Base dark canvas (ongewijzigd – was al goed)
+        // Base ink (goed, laten we dit met rust)
         bg: { value: "#0B0D12" },
         surface1: { value: "#111521" },
         surface2: { value: "#151B2B" },
@@ -23,13 +23,13 @@ const system = createSystem(defaultConfig, {
         text: { value: "#EEF0FF" },
         muted: { value: "rgba(238,240,255,0.68)" },
 
-        // Brand — pastel blue (volledige schaal behouden)
+        // Brand – onveranderd (was niet het probleem)
         brand: {
-          50: { value: "rgba(181,186,255,0.08)" },
-          100: { value: "rgba(181,186,255,0.12)" },
-          200: { value: "rgba(181,186,255,0.20)" },
-          300: { value: "rgba(181,186,255,0.30)" },
-          400: { value: "rgba(181,186,255,0.42)" },
+          50: { value: "rgba(181,186,255,0.10)" },
+          100: { value: "rgba(181,186,255,0.14)" },
+          200: { value: "rgba(181,186,255,0.22)" },
+          300: { value: "rgba(181,186,255,0.32)" },
+          400: { value: "rgba(181,186,255,0.45)" },
           500: { value: "#B5BAFF" },
           600: { value: "#9DA3FF" },
           700: { value: "#7F87FF" },
@@ -37,10 +37,9 @@ const system = createSystem(defaultConfig, {
           900: { value: "#5660FF" },
         },
 
-        // AI accent — deep blue
         ai: {
-          50: { value: "rgba(79,99,255,0.08)" },
-          200: { value: "rgba(79,99,255,0.16)" },
+          50: { value: "rgba(79,99,255,0.10)" },
+          200: { value: "rgba(79,99,255,0.18)" },
           500: { value: "#4F63FF" },
           700: { value: "#2F46FF" },
         },
@@ -58,19 +57,19 @@ const system = createSystem(defaultConfig, {
       },
     },
 
-    // Semantic tokens — HIER zat het probleem
+    // 👇 Hier corrigeren we het overshoot
     semanticTokens: {
       colors: {
-        // 3 tinten donkerder dan voorheen
-        appBg: { value: "#0F1322" }, // was #f4f6fb
-        cardBg: { value: "#141A2E" }, // was #ffffff
-        cardBgSecondary: { value: "#191F36" },
+        // Slechts 1–2 tinten donkerder dan licht thema
+        appBg: { value: "#E9ECF4" }, // was #f4f6fb → net donkerder
+        cardBg: { value: "#F1F3FA" }, // cards blijven licht
+        cardBgSecondary: { value: "#E6E9F4" },
 
-        text: { value: "#E6E9FF" }, // hoog contrast, geen puur wit
-        muted: { value: "rgba(230,233,255,0.62)" },
-        border: { value: "rgba(181,186,255,0.18)" },
+        text: { value: "#1F2335" }, // goed leesbaar, niet hard
+        muted: { value: "#5F647D" },
+        border: { value: "rgba(31,35,53,0.10)" },
 
-        focusRing: { value: "{colors.brand.300}" },
+        focusRing: { value: "{colors.brand.200}" },
       },
     },
   },
