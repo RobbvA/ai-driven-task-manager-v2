@@ -101,7 +101,7 @@ export default function AddTaskBar({ onAddTask }) {
               border="1px solid"
               borderColor="border"
               borderRadius="lg"
-              placeholder="e.g. Write the deployment checklist"
+              placeholder="Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               _focusVisible={{
